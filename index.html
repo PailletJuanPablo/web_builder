@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Constructor!</title>
+    <link rel="stylesheet" href="dist/css/grapes.min.css">
+    <script src="dist/grapes.min.js"></script>
+    <link rel="stylesheet" href="dist/css/code_editor.css" />
+    <script src="dist/js/code_editor.js"></script>
+    <style>
+      body,
+      html {
+        height: 100%;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="gjs" style="height:0px; overflow:hidden;"> <h1>Constructor Web</h1> </div>
+
+
+    <script type="text/javascript">
+      var editor = grapesjs.init({
+        showOffsets: 0,
+        noticeOnUnload: 0,
+        container: '#gjs',
+        height: '100%',
+        fromElement: true,
+        storageManager: { autoload: 0 },
+        styleManager: {
+          sectors: [
+            {
+              name: 'General',
+              open: false,
+              buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom']
+            },
+            {
+              name: 'Tamaño',
+              open: false,
+              buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding']
+            },
+            {
+              name: 'Fuente',
+              open: false,
+              buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-shadow']
+            },
+            {
+              name: 'Decoraciones',
+              open: false,
+              buildProps: ['border-radius-c', 'background-color', 'border-radius', 'border', 'box-shadow', 'background']
+            }
+          ]
+        }
+      });
+
+      editor.BlockManager.add('testBlock', {
+        label: 'Block',
+        attributes: { class: 'gjs-fonts gjs-f-b1' },
+        content: `<div style="padding-top:50px; padding-bottom:50px; text-align:center">Test block</div>`
+      });
+    </script>
+  </body>
+</html>
