@@ -21,7 +21,7 @@ export default (dc, traits, contexts, sizes, config = {}) => {
                             {value: '', name: 'Default'},
                             ... Object.keys(sizes).map(function(k) { return {value: 'btn-group-'+k, name: sizes[k]} })
                         ],
-                        label: 'Size'
+                        label: 'Tamaño'
                     },
                     {
                         type: 'class_select',
@@ -29,7 +29,7 @@ export default (dc, traits, contexts, sizes, config = {}) => {
                             {value: '', name: 'Horizontal'},
                             {value: 'btn-group-vertical', name: 'Vertical'},
                         ],
-                        label: 'Size'
+                        label: 'Tamaño'
                     },
                     {
                         type: 'Texto',

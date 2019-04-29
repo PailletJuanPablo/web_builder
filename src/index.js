@@ -3,8 +3,7 @@ import Editor from './editor';
 import { isElement, isFunction } from 'underscore';
 import polyfills from 'utils/polyfills';
 import PluginManager from './plugin_manager';
-const { bSettings } = require('./bootstrap');
-import Templates from './templates';
+
 import CustomConf from './custom';
 
 polyfills();
@@ -81,10 +80,9 @@ module.exports = (() => {
       editor.getModel().loadOnStart();
       config.autorender && editor.render();
 
-      bSettings(editor, config);
-      Templates(editor, config);
-      CustomConf(editor, config)
       editors.push(editor);
+
+      CustomConf(editor, config)
 
       return editor;
     }

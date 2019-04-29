@@ -196,20 +196,20 @@ export default (editor, config = {}) => {
       defaultType = domc.getType('default');
       defaultModel = defaultType.model;
       defaultView = defaultType.view;
-    }
+    }  
 
     // Rebuild the text component and add display utility setting
     if (blocks.text) {
       domc.addType('text', {
         model: defaultModel.extend({
           defaults: Object.assign({}, defaultModel.prototype.defaults, {
-            'custom-name': 'Div',
+            'custom-name': 'Caja',
             tagName: 'div',
             droppable: true,
             editable: true
           })
         }, {
-          /*isComponent(el) {
+          /*isComponent(el) { 
             if(el && el.dataset && el.dataset.bsText) {
               return {type: 'text'};
             }
@@ -265,7 +265,42 @@ export default (editor, config = {}) => {
     }
 
 
-    
+    // Basic
+
+    /*if (blocks.list) {
+      domc.addType('list', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'List',
+            tagName: 'ul',
+            resizable: 1,
+            traits: [
+              {
+                type: 'select',
+                options: [
+                  {value: 'ul', name: 'No'},
+                  {value: 'ol', name: 'Yes'}
+                ],
+                label: 'Ordered?',
+                name: 'tagName',
+                changeProp: 1
+              }
+            ].concat(defaultModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent: function(el) {
+            if(el && ['UL','OL'].includes(el.tagName)) {
+              return {type: 'list'};
+            }
+          }
+        }),
+        view: defaultView
+      });
+    }*/
+
+    /*if (blocks.description_list) {
+    }*/
+
   }
 
   // LAYOUT
@@ -513,6 +548,86 @@ export default (editor, config = {}) => {
 
   if (cats.components) {
 
+    /*
+    // Alert
+
+    if (blocks.alert) {
+      domc.addType('alert', {
+        model: textModel.extend({
+          defaults: Object.assign({}, textModel.prototype.defaults, {
+            'custom-name': 'Alert',
+            tagName: 'div',
+            classes: ['alert'],
+            traits: [
+              {
+                type: 'class_select',
+                options: [
+                  {value: '', name: 'None'},
+                  ... contexts.map(function(v) { return {value: 'alert-'+v, name: _s.capitalize(v)} })
+                ],
+                label: 'Contexto diseño'
+              }
+            ].concat(textModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent(el) {
+            if(el && el.classList && el.classList.contains('alert')) {
+              return {type: 'alert'};
+            }
+          }
+        }),
+        view: textView
+      });
+    }
+
+    if (blocks.tabs) {
+      TabsNavigation(domc, config);
+      Tab(domc, config);
+      TabsPanes(domc, config);
+      TabPane(domc, config);
+    }
+
+    // Badge
+
+    if (blocks.badge) {
+      domc.addType('badge', {
+        model: textModel.extend({
+          defaults: Object.assign({}, textModel.prototype.defaults, {
+            'custom-name': 'Badge',
+            tagName: 'span',
+            classes: ['badge'],
+            traits: [
+              {
+                type: 'class_select',
+                options: [
+                  {value: '', name: 'None'},
+                  ... contexts.map(function(v) { return {value: 'badge-'+v, name: _s.capitalize(v)} })
+                ],
+                label: 'Contexto diseño'
+              },
+              {
+                type: 'class_select',
+                options: [
+                  {value: '', name: 'Default'},
+                  {value: 'badge-pill', name: 'Pill'},
+                ],
+                label: 'Shape'
+              }
+            ].concat(textModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent(el) {
+            if(el && el.classList && el.classList.contains('badge')) {
+              return {type: 'badge'};
+            }
+          }
+        }),
+        view: textView
+      });
+    }
+
+*/
+
     // Card
 
     if (blocks.card) {
@@ -524,7 +639,7 @@ export default (editor, config = {}) => {
             traits: [
               {
                 type: 'checkbox',
-                label: 'Imagen superior',
+                label: 'Image Top',
                 name: 'card-img-top',
                 changeProp: 1
               },
@@ -536,19 +651,19 @@ export default (editor, config = {}) => {
               },
               {
                 type: 'checkbox',
-                label: 'Imagen',
+                label: 'Image',
                 name: 'card-img',
                 changeProp: 1
               },
               {
                 type: 'checkbox',
-                label: 'Imagen',
+                label: 'Image Overlay',
                 name: 'card-img-overlay',
                 changeProp: 1
               },
               {
                 type: 'checkbox',
-                label: 'Cuerpo',
+                label: 'Body',
                 name: 'card-body',
                 changeProp: 1
               },
@@ -560,7 +675,7 @@ export default (editor, config = {}) => {
               },
               {
                 type: 'checkbox',
-                label: 'Image Pie',
+                label: 'Image Bottom',
                 name: 'card-img-bottom',
                 changeProp: 1
               }
@@ -625,13 +740,13 @@ export default (editor, config = {}) => {
                   type: 'header',
                   tagName: 'h4',
                   classes: ['card-title'],
-                  content: 'Título'
+                  content: Título
                 });
                 comp_children.add({
                   type: 'header',
                   tagName: 'h6',
                   classes: ['card-subtitle', 'text-muted', 'mb-2'],
-                  content: 'Subtitulo'
+                  content: 'Subtitle'
                 });
                 comp_children.add({
                   type: 'text',

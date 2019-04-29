@@ -19,28 +19,28 @@ export default (editor, config = {}) => {
         command: 'set-device-xl',
         className: 'fa fa-desktop',
         text: 'XL',
-        attributes: {'title': 'Extra Large'},
+        attributes: {Título: 'Extra Large'},
         active: 1
       },{
         id: 'deviceLg',
         command: 'set-device-lg',
         className: 'fa fa-desktop',
-        attributes: {'title': 'Large'}
+        attributes: {Título: 'Large'}
       },{
         id: 'deviceMd',
         command: 'set-device-md',
         className: 'fa fa-tablet',
-        attributes: {'title': 'Medium'}
+        attributes: {Título: 'Medium'}
       },{
         id: 'deviceSm',
         command: 'set-device-sm',
         className: 'fa fa-mobile',
-        attributes: {'title': 'Small'}
+        attributes: {Título: 'Small'}
       },{
         id: 'deviceXs',
         command: 'set-device-xs',
         className: 'fa fa-mobile',
-        attributes: {'title': 'Extra Small'}
+        attributes: {Título: 'Extra Small'}
       }]);
 
       commands.add('set-device-xs', {

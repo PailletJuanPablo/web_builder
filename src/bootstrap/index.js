@@ -103,51 +103,6 @@ export const bSettings = (editor, opts = {}) => {
   editor.addComponents(`
     <style>
 
-      /* Estilos generales */
-
-       .container,  .container-fluid,
-       .tab-pane,
-       .row,
-       .col,  [class^="col-"] {
-        min-height: 1.5rem !important;
-      }
-       .w-100 {
-        min-height: .25rem !important;
-        background-color: rgba(0,0,0,0.1);
-      }
-       img {
-        min-width: 25px;
-        min-height: 25px;
-        background-color: rgba(0,0,0,0.5);
-      }
-
-      /* Components */
-      
-       .btn-group,
-       .btn-toolbar {
-        padding-right: 1.5rem !important;
-        min-height: 1.5rem !important;
-      }
-       .card,
-       .card-group,  .card-deck,  .card-columns {
-        min-height: 1.5rem !important;
-      }
-       .collapse {
-        display: block !important;
-        min-height: 1.5rem !important;
-      }
-       .dropdown {
-        display: block !important;
-        min-height: 1.5rem !important;
-      }
-       .dropdown-menu {
-        min-height: 1.5rem !important;
-        display: block !important;
-      }
-
-      .row, .container {
-                min-height: 75px !important;
-      }
       img {
         max-width: 100%
       }

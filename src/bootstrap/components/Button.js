@@ -23,7 +23,7 @@ export default (dc, traits, contexts, sizes, config = {}) => {
                             ... contexts.map(function(v) { return {value: 'btn-'+v, name: _s.capitalize(v)} }),
                             ... contexts.map(function(v) { return {value: 'btn-outline-'+v, name: _s.capitalize(v) + ' (Outline)'} })
                         ],
-                        label: 'Context'
+                        label: 'Contexto diseño'
                     },
                     {
                         type: 'class_select',
@@ -31,7 +31,7 @@ export default (dc, traits, contexts, sizes, config = {}) => {
                             {value: '', name: 'Default'},
                             ... Object.keys(sizes).map(function(k) { return {value: 'btn-'+k, name: sizes[k]} })
                         ],
-                        label: 'Size'
+                        label: 'Tamaño'
                     },
                     {
                         type: 'class_select',
@@ -39,7 +39,7 @@ export default (dc, traits, contexts, sizes, config = {}) => {
                             {value: '', name: 'Inline'},
                             {value: 'btn-block', name: 'Block'}
                         ],
-                        label: 'Width'
+                        label: 'Ancho'
                     }
                 ].concat(linkModel.prototype.defaults.traits)
             }),

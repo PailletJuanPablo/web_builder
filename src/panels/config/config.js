@@ -83,7 +83,7 @@ module.exports = {
         },
         {
           id: ola,
-          className: 'fa fa-html5',
+          className: 'fa fa-align-justify',
           command: ola,
           active: false,
           togglable: 0,

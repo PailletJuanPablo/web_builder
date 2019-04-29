@@ -40,6 +40,8 @@ module.exports = {
   // use this property if you wish to overwrite the base CSS to your own CSS. This is most
   // useful if for example your template is not based off a document with 0 as body margin.
   baseCss: `
+  
+
     * {
       box-sizing: border-box;
     }
@@ -70,7 +72,7 @@ module.exports = {
   `,
 
   // CSS that could only be seen (for instance, inside the code viewer)
-  protectedCss: '* { box-sizing: border-box; } body {margin: 0;}',
+  protectedCss: '',
 
   // CSS for the iframe which containing the canvas, useful if you need to custom something inside
   // (eg. the style of the selected component)
@@ -86,7 +88,7 @@ module.exports = {
   allowScripts: 0,
 
   // If true render a select of available devices
-  showDevices: 1,
+  showDevices: 0,
 
   // When enabled, on device change media rules won't be created
   devicePreviewMode: 0,
