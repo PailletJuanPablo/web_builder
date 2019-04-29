@@ -20427,6 +20427,223 @@ exports.default = Promise;
 
 /***/ }),
 
+/***/ "./node_modules/sprintf-js/src/sprintf.js":
+/*!************************************************!*\
+  !*** ./node_modules/sprintf-js/src/sprintf.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+(function (window) {
+    var re = {
+        not_string: /[^s]/,
+        number: /[diefg]/,
+        json: /[j]/,
+        not_json: /[^j]/,
+        text: /^[^\x25]+/,
+        modulo: /^\x25{2}/,
+        placeholder: /^\x25(?:([1-9]\d*)\$|\(([^\)]+)\))?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([b-gijosuxX])/,
+        key: /^([a-z_][a-z_\d]*)/i,
+        key_access: /^\.([a-z_][a-z_\d]*)/i,
+        index_access: /^\[(\d+)\]/,
+        sign: /^[\+\-]/
+    };
+
+    function sprintf() {
+        var key = arguments[0],
+            cache = sprintf.cache;
+        if (!(cache[key] && cache.hasOwnProperty(key))) {
+            cache[key] = sprintf.parse(key);
+        }
+        return sprintf.format.call(null, cache[key], arguments);
+    }
+
+    sprintf.format = function (parse_tree, argv) {
+        var cursor = 1,
+            tree_length = parse_tree.length,
+            node_type = "",
+            arg,
+            output = [],
+            i,
+            k,
+            match,
+            pad,
+            pad_character,
+            pad_length,
+            is_positive = true,
+            sign = "";
+        for (i = 0; i < tree_length; i++) {
+            node_type = get_type(parse_tree[i]);
+            if (node_type === "string") {
+                output[output.length] = parse_tree[i];
+            } else if (node_type === "array") {
+                match = parse_tree[i]; // convenience purposes only
+                if (match[2]) {
+                    // keyword argument
+                    arg = argv[cursor];
+                    for (k = 0; k < match[2].length; k++) {
+                        if (!arg.hasOwnProperty(match[2][k])) {
+                            throw new Error(sprintf("[sprintf] property '%s' does not exist", match[2][k]));
+                        }
+                        arg = arg[match[2][k]];
+                    }
+                } else if (match[1]) {
+                    // positional argument (explicit)
+                    arg = argv[match[1]];
+                } else {
+                    // positional argument (implicit)
+                    arg = argv[cursor++];
+                }
+
+                if (get_type(arg) == "function") {
+                    arg = arg();
+                }
+
+                if (re.not_string.test(match[8]) && re.not_json.test(match[8]) && get_type(arg) != "number" && isNaN(arg)) {
+                    throw new TypeError(sprintf("[sprintf] expecting number but found %s", get_type(arg)));
+                }
+
+                if (re.number.test(match[8])) {
+                    is_positive = arg >= 0;
+                }
+
+                switch (match[8]) {
+                    case "b":
+                        arg = arg.toString(2);
+                        break;
+                    case "c":
+                        arg = String.fromCharCode(arg);
+                        break;
+                    case "d":
+                    case "i":
+                        arg = parseInt(arg, 10);
+                        break;
+                    case "j":
+                        arg = JSON.stringify(arg, null, match[6] ? parseInt(match[6]) : 0);
+                        break;
+                    case "e":
+                        arg = match[7] ? arg.toExponential(match[7]) : arg.toExponential();
+                        break;
+                    case "f":
+                        arg = match[7] ? parseFloat(arg).toFixed(match[7]) : parseFloat(arg);
+                        break;
+                    case "g":
+                        arg = match[7] ? parseFloat(arg).toPrecision(match[7]) : parseFloat(arg);
+                        break;
+                    case "o":
+                        arg = arg.toString(8);
+                        break;
+                    case "s":
+                        arg = (arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg;
+                        break;
+                    case "u":
+                        arg = arg >>> 0;
+                        break;
+                    case "x":
+                        arg = arg.toString(16);
+                        break;
+                    case "X":
+                        arg = arg.toString(16).toUpperCase();
+                        break;
+                }
+                if (re.json.test(match[8])) {
+                    output[output.length] = arg;
+                } else {
+                    if (re.number.test(match[8]) && (!is_positive || match[3])) {
+                        sign = is_positive ? "+" : "-";
+                        arg = arg.toString().replace(re.sign, "");
+                    } else {
+                        sign = "";
+                    }
+                    pad_character = match[4] ? match[4] === "0" ? "0" : match[4].charAt(1) : " ";
+                    pad_length = match[6] - (sign + arg).length;
+                    pad = match[6] ? pad_length > 0 ? str_repeat(pad_character, pad_length) : "" : "";
+                    output[output.length] = match[5] ? sign + arg + pad : pad_character === "0" ? sign + pad + arg : pad + sign + arg;
+                }
+            }
+        }
+        return output.join("");
+    };
+
+    sprintf.cache = {};
+
+    sprintf.parse = function (fmt) {
+        var _fmt = fmt,
+            match = [],
+            parse_tree = [],
+            arg_names = 0;
+        while (_fmt) {
+            if ((match = re.text.exec(_fmt)) !== null) {
+                parse_tree[parse_tree.length] = match[0];
+            } else if ((match = re.modulo.exec(_fmt)) !== null) {
+                parse_tree[parse_tree.length] = "%";
+            } else if ((match = re.placeholder.exec(_fmt)) !== null) {
+                if (match[2]) {
+                    arg_names |= 1;
+                    var field_list = [],
+                        replacement_field = match[2],
+                        field_match = [];
+                    if ((field_match = re.key.exec(replacement_field)) !== null) {
+                        field_list[field_list.length] = field_match[1];
+                        while ((replacement_field = replacement_field.substring(field_match[0].length)) !== "") {
+                            if ((field_match = re.key_access.exec(replacement_field)) !== null) {
+                                field_list[field_list.length] = field_match[1];
+                            } else if ((field_match = re.index_access.exec(replacement_field)) !== null) {
+                                field_list[field_list.length] = field_match[1];
+                            } else {
+                                throw new SyntaxError("[sprintf] failed to parse named argument key");
+                            }
+                        }
+                    } else {
+                        throw new SyntaxError("[sprintf] failed to parse named argument key");
+                    }
+                    match[2] = field_list;
+                } else {
+                    arg_names |= 2;
+                }
+                if (arg_names === 3) {
+                    throw new Error("[sprintf] mixing positional and named placeholders is not (yet) supported");
+                }
+                parse_tree[parse_tree.length] = match;
+            } else {
+                throw new SyntaxError("[sprintf] unexpected placeholder");
+            }
+            _fmt = _fmt.substring(match[0].length);
+        }
+        return parse_tree;
+    };
+
+    var vsprintf = function vsprintf(fmt, argv, _argv) {
+        _argv = (argv || []).slice(0);
+        _argv.splice(0, 0, fmt);
+        return sprintf.apply(null, _argv);
+    };
+
+    /**
+     * helpers
+     */
+    function get_type(variable) {
+        return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
+    }
+
+    function str_repeat(input, multiplier) {
+        return Array(multiplier + 1).join(input);
+    }
+
+    /**
+     * export to either browser or node.js
+     */
+    if (true) {
+        exports.sprintf = sprintf;
+        exports.vsprintf = vsprintf;
+    } else {}
+})(typeof window === "undefined" ? undefined : window);
+
+/***/ }),
+
 /***/ "./node_modules/timers-browserify/main.js":
 /*!************************************************!*\
   !*** ./node_modules/timers-browserify/main.js ***!
@@ -20499,6 +20716,1713 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
                          (this && this.clearImmediate);
 
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/camelize.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/camelize.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var trim = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+var decap = __webpack_require__(/*! ./decapitalize */ "./node_modules/underscore.string/decapitalize.js");
+
+module.exports = function camelize(str, decapitalize) {
+  str = trim(str).replace(/[-_\s]+(.)?/g, function(match, c) {
+    return c ? c.toUpperCase() : '';
+  });
+
+  if (decapitalize === true) {
+    return decap(str);
+  } else {
+    return str;
+  }
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/capitalize.js":
+/*!******************************************************!*\
+  !*** ./node_modules/underscore.string/capitalize.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function capitalize(str, lowercaseRest) {
+  str = makeString(str);
+  var remainingChars = !lowercaseRest ? str.slice(1) : str.slice(1).toLowerCase();
+
+  return str.charAt(0).toUpperCase() + remainingChars;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/chars.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/chars.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function chars(str) {
+  return makeString(str).split('');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/chop.js":
+/*!************************************************!*\
+  !*** ./node_modules/underscore.string/chop.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function chop(str, step) {
+  if (str == null) return [];
+  str = String(str);
+  step = ~~step;
+  return step > 0 ? str.match(new RegExp('.{1,' + step + '}', 'g')) : [str];
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/classify.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/classify.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var capitalize = __webpack_require__(/*! ./capitalize */ "./node_modules/underscore.string/capitalize.js");
+var camelize = __webpack_require__(/*! ./camelize */ "./node_modules/underscore.string/camelize.js");
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function classify(str) {
+  str = makeString(str);
+  return capitalize(camelize(str.replace(/[\W_]/g, ' ')).replace(/\s/g, ''));
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/clean.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/clean.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var trim = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+
+module.exports = function clean(str) {
+  return trim(str).replace(/\s\s+/g, ' ');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/cleanDiacritics.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/underscore.string/cleanDiacritics.js ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+var from  = 'ąàáäâãåæăćčĉęèéëêĝĥìíïîĵłľńňòóöőôõðøśșşšŝťțţŭùúüűûñÿýçżźž',
+  to    = 'aaaaaaaaaccceeeeeghiiiijllnnoooooooossssstttuuuuuunyyczzz';
+
+from += from.toUpperCase();
+to += to.toUpperCase();
+
+to = to.split('');
+
+// for tokens requireing multitoken output
+from += 'ß';
+to.push('ss');
+
+
+module.exports = function cleanDiacritics(str) {
+  return makeString(str).replace(/.{1}/g, function(c){
+    var index = from.indexOf(c);
+    return index === -1 ? c : to[index];
+  });
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/count.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/count.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function(str, substr) {
+  str = makeString(str);
+  substr = makeString(substr);
+
+  if (str.length === 0 || substr.length === 0) return 0;
+  
+  return str.split(substr).length - 1;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/dasherize.js":
+/*!*****************************************************!*\
+  !*** ./node_modules/underscore.string/dasherize.js ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var trim = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+
+module.exports = function dasherize(str) {
+  return trim(str).replace(/([A-Z])/g, '-$1').replace(/[-_\s]+/g, '-').toLowerCase();
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/decapitalize.js":
+/*!********************************************************!*\
+  !*** ./node_modules/underscore.string/decapitalize.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function decapitalize(str) {
+  str = makeString(str);
+  return str.charAt(0).toLowerCase() + str.slice(1);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/dedent.js":
+/*!**************************************************!*\
+  !*** ./node_modules/underscore.string/dedent.js ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+function getIndent(str) {
+  var matches = str.match(/^[\s\\t]*/gm);
+  var indent = matches[0].length;
+  
+  for (var i = 1; i < matches.length; i++) {
+    indent = Math.min(matches[i].length, indent);
+  }
+
+  return indent;
+}
+
+module.exports = function dedent(str, pattern) {
+  str = makeString(str);
+  var indent = getIndent(str);
+  var reg;
+
+  if (indent === 0) return str;
+
+  if (typeof pattern === 'string') {
+    reg = new RegExp('^' + pattern, 'gm');
+  } else {
+    reg = new RegExp('^[ \\t]{' + indent + '}', 'gm');
+  }
+
+  return str.replace(reg, '');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/endsWith.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/endsWith.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var toPositive = __webpack_require__(/*! ./helper/toPositive */ "./node_modules/underscore.string/helper/toPositive.js");
+
+module.exports = function endsWith(str, ends, position) {
+  str = makeString(str);
+  ends = '' + ends;
+  if (typeof position == 'undefined') {
+    position = str.length - ends.length;
+  } else {
+    position = Math.min(toPositive(position), str.length) - ends.length;
+  }
+  return position >= 0 && str.indexOf(ends, position) === position;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/escapeHTML.js":
+/*!******************************************************!*\
+  !*** ./node_modules/underscore.string/escapeHTML.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var escapeChars = __webpack_require__(/*! ./helper/escapeChars */ "./node_modules/underscore.string/helper/escapeChars.js");
+
+var regexString = '[';
+for(var key in escapeChars) {
+  regexString += key;
+}
+regexString += ']';
+
+var regex = new RegExp( regexString, 'g');
+
+module.exports = function escapeHTML(str) {
+
+  return makeString(str).replace(regex, function(m) {
+    return '&' + escapeChars[m] + ';';
+  });
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/exports.js":
+/*!***************************************************!*\
+  !*** ./node_modules/underscore.string/exports.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function() {
+  var result = {};
+
+  for (var prop in this) {
+    if (!this.hasOwnProperty(prop) || prop.match(/^(?:include|contains|reverse|join|map|wrap)$/)) continue;
+    result[prop] = this[prop];
+  }
+
+  return result;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/helper/adjacent.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/underscore.string/helper/adjacent.js ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function adjacent(str, direction) {
+  str = makeString(str);
+  if (str.length === 0) {
+    return '';
+  }
+  return str.slice(0, -1) + String.fromCharCode(str.charCodeAt(str.length - 1) + direction);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/helper/defaultToWhiteSpace.js":
+/*!**********************************************************************!*\
+  !*** ./node_modules/underscore.string/helper/defaultToWhiteSpace.js ***!
+  \**********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var escapeRegExp = __webpack_require__(/*! ./escapeRegExp */ "./node_modules/underscore.string/helper/escapeRegExp.js");
+
+module.exports = function defaultToWhiteSpace(characters) {
+  if (characters == null)
+    return '\\s';
+  else if (characters.source)
+    return characters.source;
+  else
+    return '[' + escapeRegExp(characters) + ']';
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/helper/escapeChars.js":
+/*!**************************************************************!*\
+  !*** ./node_modules/underscore.string/helper/escapeChars.js ***!
+  \**************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+/* We're explicitly defining the list of entities we want to escape.
+nbsp is an HTML entity, but we don't want to escape all space characters in a string, hence its omission in this map.
+
+*/
+var escapeChars = {
+  '¢' : 'cent',
+  '£' : 'pound',
+  '¥' : 'yen',
+  '€': 'euro',
+  '©' :'copy',
+  '®' : 'reg',
+  '<' : 'lt',
+  '>' : 'gt',
+  '"' : 'quot',
+  '&' : 'amp',
+  '\'' : '#39'
+};
+
+module.exports = escapeChars;
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/helper/escapeRegExp.js":
+/*!***************************************************************!*\
+  !*** ./node_modules/underscore.string/helper/escapeRegExp.js ***!
+  \***************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function escapeRegExp(str) {
+  return makeString(str).replace(/([.*+?^=!:${}()|[\]\/\\])/g, '\\$1');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/helper/htmlEntities.js":
+/*!***************************************************************!*\
+  !*** ./node_modules/underscore.string/helper/htmlEntities.js ***!
+  \***************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+/*
+We're explicitly defining the list of entities that might see in escape HTML strings
+*/
+var htmlEntities = {
+  nbsp: ' ',
+  cent: '¢',
+  pound: '£',
+  yen: '¥',
+  euro: '€',
+  copy: '©',
+  reg: '®',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  amp: '&',
+  apos: '\''
+};
+
+module.exports = htmlEntities;
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/helper/makeString.js":
+/*!*************************************************************!*\
+  !*** ./node_modules/underscore.string/helper/makeString.js ***!
+  \*************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+/**
+ * Ensure some object is a coerced to a string
+ **/
+module.exports = function makeString(object) {
+  if (object == null) return '';
+  return '' + object;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/helper/strRepeat.js":
+/*!************************************************************!*\
+  !*** ./node_modules/underscore.string/helper/strRepeat.js ***!
+  \************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function strRepeat(str, qty){
+  if (qty < 1) return '';
+  var result = '';
+  while (qty > 0) {
+    if (qty & 1) result += str;
+    qty >>= 1, str += str;
+  }
+  return result;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/helper/toPositive.js":
+/*!*************************************************************!*\
+  !*** ./node_modules/underscore.string/helper/toPositive.js ***!
+  \*************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function toPositive(number) {
+  return number < 0 ? 0 : (+number || 0);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/humanize.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/humanize.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var capitalize = __webpack_require__(/*! ./capitalize */ "./node_modules/underscore.string/capitalize.js");
+var underscored = __webpack_require__(/*! ./underscored */ "./node_modules/underscore.string/underscored.js");
+var trim = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+
+module.exports = function humanize(str) {
+  return capitalize(trim(underscored(str).replace(/_id$/, '').replace(/_/g, ' ')));
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/include.js":
+/*!***************************************************!*\
+  !*** ./node_modules/underscore.string/include.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function include(str, needle) {
+  if (needle === '') return true;
+  return makeString(str).indexOf(needle) !== -1;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/index.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/index.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/*
+* Underscore.string
+* (c) 2010 Esa-Matti Suuronen <esa-matti aet suuronen dot org>
+* Underscore.string is freely distributable under the terms of the MIT license.
+* Documentation: https://github.com/epeli/underscore.string
+* Some code is borrowed from MooTools and Alexandru Marasteanu.
+* Version '3.3.4'
+* @preserve
+*/
+
+
+
+function s(value) {
+  /* jshint validthis: true */
+  if (!(this instanceof s)) return new s(value);
+  this._wrapped = value;
+}
+
+s.VERSION = '3.3.4';
+
+s.isBlank          = __webpack_require__(/*! ./isBlank */ "./node_modules/underscore.string/isBlank.js");
+s.stripTags        = __webpack_require__(/*! ./stripTags */ "./node_modules/underscore.string/stripTags.js");
+s.capitalize       = __webpack_require__(/*! ./capitalize */ "./node_modules/underscore.string/capitalize.js");
+s.decapitalize     = __webpack_require__(/*! ./decapitalize */ "./node_modules/underscore.string/decapitalize.js");
+s.chop             = __webpack_require__(/*! ./chop */ "./node_modules/underscore.string/chop.js");
+s.trim             = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+s.clean            = __webpack_require__(/*! ./clean */ "./node_modules/underscore.string/clean.js");
+s.cleanDiacritics  = __webpack_require__(/*! ./cleanDiacritics */ "./node_modules/underscore.string/cleanDiacritics.js");
+s.count            = __webpack_require__(/*! ./count */ "./node_modules/underscore.string/count.js");
+s.chars            = __webpack_require__(/*! ./chars */ "./node_modules/underscore.string/chars.js");
+s.swapCase         = __webpack_require__(/*! ./swapCase */ "./node_modules/underscore.string/swapCase.js");
+s.escapeHTML       = __webpack_require__(/*! ./escapeHTML */ "./node_modules/underscore.string/escapeHTML.js");
+s.unescapeHTML     = __webpack_require__(/*! ./unescapeHTML */ "./node_modules/underscore.string/unescapeHTML.js");
+s.splice           = __webpack_require__(/*! ./splice */ "./node_modules/underscore.string/splice.js");
+s.insert           = __webpack_require__(/*! ./insert */ "./node_modules/underscore.string/insert.js");
+s.replaceAll       = __webpack_require__(/*! ./replaceAll */ "./node_modules/underscore.string/replaceAll.js");
+s.include          = __webpack_require__(/*! ./include */ "./node_modules/underscore.string/include.js");
+s.join             = __webpack_require__(/*! ./join */ "./node_modules/underscore.string/join.js");
+s.lines            = __webpack_require__(/*! ./lines */ "./node_modules/underscore.string/lines.js");
+s.dedent           = __webpack_require__(/*! ./dedent */ "./node_modules/underscore.string/dedent.js");
+s.reverse          = __webpack_require__(/*! ./reverse */ "./node_modules/underscore.string/reverse.js");
+s.startsWith       = __webpack_require__(/*! ./startsWith */ "./node_modules/underscore.string/startsWith.js");
+s.endsWith         = __webpack_require__(/*! ./endsWith */ "./node_modules/underscore.string/endsWith.js");
+s.pred             = __webpack_require__(/*! ./pred */ "./node_modules/underscore.string/pred.js");
+s.succ             = __webpack_require__(/*! ./succ */ "./node_modules/underscore.string/succ.js");
+s.titleize         = __webpack_require__(/*! ./titleize */ "./node_modules/underscore.string/titleize.js");
+s.camelize         = __webpack_require__(/*! ./camelize */ "./node_modules/underscore.string/camelize.js");
+s.underscored      = __webpack_require__(/*! ./underscored */ "./node_modules/underscore.string/underscored.js");
+s.dasherize        = __webpack_require__(/*! ./dasherize */ "./node_modules/underscore.string/dasherize.js");
+s.classify         = __webpack_require__(/*! ./classify */ "./node_modules/underscore.string/classify.js");
+s.humanize         = __webpack_require__(/*! ./humanize */ "./node_modules/underscore.string/humanize.js");
+s.ltrim            = __webpack_require__(/*! ./ltrim */ "./node_modules/underscore.string/ltrim.js");
+s.rtrim            = __webpack_require__(/*! ./rtrim */ "./node_modules/underscore.string/rtrim.js");
+s.truncate         = __webpack_require__(/*! ./truncate */ "./node_modules/underscore.string/truncate.js");
+s.prune            = __webpack_require__(/*! ./prune */ "./node_modules/underscore.string/prune.js");
+s.words            = __webpack_require__(/*! ./words */ "./node_modules/underscore.string/words.js");
+s.pad              = __webpack_require__(/*! ./pad */ "./node_modules/underscore.string/pad.js");
+s.lpad             = __webpack_require__(/*! ./lpad */ "./node_modules/underscore.string/lpad.js");
+s.rpad             = __webpack_require__(/*! ./rpad */ "./node_modules/underscore.string/rpad.js");
+s.lrpad            = __webpack_require__(/*! ./lrpad */ "./node_modules/underscore.string/lrpad.js");
+s.sprintf          = __webpack_require__(/*! ./sprintf */ "./node_modules/underscore.string/sprintf.js");
+s.vsprintf         = __webpack_require__(/*! ./vsprintf */ "./node_modules/underscore.string/vsprintf.js");
+s.toNumber         = __webpack_require__(/*! ./toNumber */ "./node_modules/underscore.string/toNumber.js");
+s.numberFormat     = __webpack_require__(/*! ./numberFormat */ "./node_modules/underscore.string/numberFormat.js");
+s.strRight         = __webpack_require__(/*! ./strRight */ "./node_modules/underscore.string/strRight.js");
+s.strRightBack     = __webpack_require__(/*! ./strRightBack */ "./node_modules/underscore.string/strRightBack.js");
+s.strLeft          = __webpack_require__(/*! ./strLeft */ "./node_modules/underscore.string/strLeft.js");
+s.strLeftBack      = __webpack_require__(/*! ./strLeftBack */ "./node_modules/underscore.string/strLeftBack.js");
+s.toSentence       = __webpack_require__(/*! ./toSentence */ "./node_modules/underscore.string/toSentence.js");
+s.toSentenceSerial = __webpack_require__(/*! ./toSentenceSerial */ "./node_modules/underscore.string/toSentenceSerial.js");
+s.slugify          = __webpack_require__(/*! ./slugify */ "./node_modules/underscore.string/slugify.js");
+s.surround         = __webpack_require__(/*! ./surround */ "./node_modules/underscore.string/surround.js");
+s.quote            = __webpack_require__(/*! ./quote */ "./node_modules/underscore.string/quote.js");
+s.unquote          = __webpack_require__(/*! ./unquote */ "./node_modules/underscore.string/unquote.js");
+s.repeat           = __webpack_require__(/*! ./repeat */ "./node_modules/underscore.string/repeat.js");
+s.naturalCmp       = __webpack_require__(/*! ./naturalCmp */ "./node_modules/underscore.string/naturalCmp.js");
+s.levenshtein      = __webpack_require__(/*! ./levenshtein */ "./node_modules/underscore.string/levenshtein.js");
+s.toBoolean        = __webpack_require__(/*! ./toBoolean */ "./node_modules/underscore.string/toBoolean.js");
+s.exports          = __webpack_require__(/*! ./exports */ "./node_modules/underscore.string/exports.js");
+s.escapeRegExp     = __webpack_require__(/*! ./helper/escapeRegExp */ "./node_modules/underscore.string/helper/escapeRegExp.js");
+s.wrap             = __webpack_require__(/*! ./wrap */ "./node_modules/underscore.string/wrap.js");
+s.map              = __webpack_require__(/*! ./map */ "./node_modules/underscore.string/map.js");
+
+// Aliases
+s.strip     = s.trim;
+s.lstrip    = s.ltrim;
+s.rstrip    = s.rtrim;
+s.center    = s.lrpad;
+s.rjust     = s.lpad;
+s.ljust     = s.rpad;
+s.contains  = s.include;
+s.q         = s.quote;
+s.toBool    = s.toBoolean;
+s.camelcase = s.camelize;
+s.mapChars  = s.map;
+
+
+// Implement chaining
+s.prototype = {
+  value: function value() {
+    return this._wrapped;
+  }
+};
+
+function fn2method(key, fn) {
+  if (typeof fn !== 'function') return;
+  s.prototype[key] = function() {
+    var args = [this._wrapped].concat(Array.prototype.slice.call(arguments));
+    var res = fn.apply(null, args);
+    // if the result is non-string stop the chain and return the value
+    return typeof res === 'string' ? new s(res) : res;
+  };
+}
+
+// Copy functions to instance methods for chaining
+for (var key in s) fn2method(key, s[key]);
+
+fn2method('tap', function tap(string, fn) {
+  return fn(string);
+});
+
+function prototype2method(methodName) {
+  fn2method(methodName, function(context) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return String.prototype[methodName].apply(context, args);
+  });
+}
+
+var prototypeMethods = [
+  'toUpperCase',
+  'toLowerCase',
+  'split',
+  'replace',
+  'slice',
+  'substring',
+  'substr',
+  'concat'
+];
+
+for (var method in prototypeMethods) prototype2method(prototypeMethods[method]);
+
+
+module.exports = s;
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/insert.js":
+/*!**************************************************!*\
+  !*** ./node_modules/underscore.string/insert.js ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var splice = __webpack_require__(/*! ./splice */ "./node_modules/underscore.string/splice.js");
+
+module.exports = function insert(str, i, substr) {
+  return splice(str, i, 0, substr);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/isBlank.js":
+/*!***************************************************!*\
+  !*** ./node_modules/underscore.string/isBlank.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function isBlank(str) {
+  return (/^\s*$/).test(makeString(str));
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/join.js":
+/*!************************************************!*\
+  !*** ./node_modules/underscore.string/join.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var slice = [].slice;
+
+module.exports = function join() {
+  var args = slice.call(arguments),
+    separator = args.shift();
+
+  return args.join(makeString(separator));
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/levenshtein.js":
+/*!*******************************************************!*\
+  !*** ./node_modules/underscore.string/levenshtein.js ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+/**
+ * Based on the implementation here: https://github.com/hiddentao/fast-levenshtein
+ */
+module.exports = function levenshtein(str1, str2) {
+  'use strict';
+  str1 = makeString(str1);
+  str2 = makeString(str2);
+
+  // Short cut cases  
+  if (str1 === str2) return 0;
+  if (!str1 || !str2) return Math.max(str1.length, str2.length);
+
+  // two rows
+  var prevRow = new Array(str2.length + 1);
+
+  // initialise previous row
+  for (var i = 0; i < prevRow.length; ++i) {
+    prevRow[i] = i;
+  }
+
+  // calculate current row distance from previous row
+  for (i = 0; i < str1.length; ++i) {
+    var nextCol = i + 1;
+
+    for (var j = 0; j < str2.length; ++j) {
+      var curCol = nextCol;
+
+      // substution
+      nextCol = prevRow[j] + ( (str1.charAt(i) === str2.charAt(j)) ? 0 : 1 );
+      // insertion
+      var tmp = curCol + 1;
+      if (nextCol > tmp) {
+        nextCol = tmp;
+      }
+      // deletion
+      tmp = prevRow[j + 1] + 1;
+      if (nextCol > tmp) {
+        nextCol = tmp;
+      }
+
+      // copy current col value into previous (in preparation for next iteration)
+      prevRow[j] = curCol;
+    }
+
+    // copy last col value into previous (in preparation for next iteration)
+    prevRow[j] = nextCol;
+  }
+
+  return nextCol;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/lines.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/lines.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function lines(str) {
+  if (str == null) return [];
+  return String(str).split(/\r\n?|\n/);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/lpad.js":
+/*!************************************************!*\
+  !*** ./node_modules/underscore.string/lpad.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var pad = __webpack_require__(/*! ./pad */ "./node_modules/underscore.string/pad.js");
+
+module.exports = function lpad(str, length, padStr) {
+  return pad(str, length, padStr);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/lrpad.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/lrpad.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var pad = __webpack_require__(/*! ./pad */ "./node_modules/underscore.string/pad.js");
+
+module.exports = function lrpad(str, length, padStr) {
+  return pad(str, length, padStr, 'both');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/ltrim.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/ltrim.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var defaultToWhiteSpace = __webpack_require__(/*! ./helper/defaultToWhiteSpace */ "./node_modules/underscore.string/helper/defaultToWhiteSpace.js");
+var nativeTrimLeft = String.prototype.trimLeft;
+
+module.exports = function ltrim(str, characters) {
+  str = makeString(str);
+  if (!characters && nativeTrimLeft) return nativeTrimLeft.call(str);
+  characters = defaultToWhiteSpace(characters);
+  return str.replace(new RegExp('^' + characters + '+'), '');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/map.js":
+/*!***********************************************!*\
+  !*** ./node_modules/underscore.string/map.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function(str, callback) {
+  str = makeString(str);
+
+  if (str.length === 0 || typeof callback !== 'function') return str;
+
+  return str.replace(/./g, callback);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/naturalCmp.js":
+/*!******************************************************!*\
+  !*** ./node_modules/underscore.string/naturalCmp.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function naturalCmp(str1, str2) {
+  if (str1 == str2) return 0;
+  if (!str1) return -1;
+  if (!str2) return 1;
+
+  var cmpRegex = /(\.\d+|\d+|\D+)/g,
+    tokens1 = String(str1).match(cmpRegex),
+    tokens2 = String(str2).match(cmpRegex),
+    count = Math.min(tokens1.length, tokens2.length);
+
+  for (var i = 0; i < count; i++) {
+    var a = tokens1[i],
+      b = tokens2[i];
+
+    if (a !== b) {
+      var num1 = +a;
+      var num2 = +b;
+      if (num1 === num1 && num2 === num2) {
+        return num1 > num2 ? 1 : -1;
+      }
+      return a < b ? -1 : 1;
+    }
+  }
+
+  if (tokens1.length != tokens2.length)
+    return tokens1.length - tokens2.length;
+
+  return str1 < str2 ? -1 : 1;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/numberFormat.js":
+/*!********************************************************!*\
+  !*** ./node_modules/underscore.string/numberFormat.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function numberFormat(number, dec, dsep, tsep) {
+  if (isNaN(number) || number == null) return '';
+
+  number = number.toFixed(~~dec);
+  tsep = typeof tsep == 'string' ? tsep : ',';
+
+  var parts = number.split('.'),
+    fnums = parts[0],
+    decimals = parts[1] ? (dsep || '.') + parts[1] : '';
+
+  return fnums.replace(/(\d)(?=(?:\d{3})+$)/g, '$1' + tsep) + decimals;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/pad.js":
+/*!***********************************************!*\
+  !*** ./node_modules/underscore.string/pad.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var strRepeat = __webpack_require__(/*! ./helper/strRepeat */ "./node_modules/underscore.string/helper/strRepeat.js");
+
+module.exports = function pad(str, length, padStr, type) {
+  str = makeString(str);
+  length = ~~length;
+
+  var padlen = 0;
+
+  if (!padStr)
+    padStr = ' ';
+  else if (padStr.length > 1)
+    padStr = padStr.charAt(0);
+
+  switch (type) {
+  case 'right':
+    padlen = length - str.length;
+    return str + strRepeat(padStr, padlen);
+  case 'both':
+    padlen = length - str.length;
+    return strRepeat(padStr, Math.ceil(padlen / 2)) + str + strRepeat(padStr, Math.floor(padlen / 2));
+  default: // 'left'
+    padlen = length - str.length;
+    return strRepeat(padStr, padlen) + str;
+  }
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/pred.js":
+/*!************************************************!*\
+  !*** ./node_modules/underscore.string/pred.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var adjacent = __webpack_require__(/*! ./helper/adjacent */ "./node_modules/underscore.string/helper/adjacent.js");
+
+module.exports = function succ(str) {
+  return adjacent(str, -1);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/prune.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/prune.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * _s.prune: a more elegant version of truncate
+ * prune extra chars, never leaving a half-chopped word.
+ * @author github.com/rwz
+ */
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var rtrim = __webpack_require__(/*! ./rtrim */ "./node_modules/underscore.string/rtrim.js");
+
+module.exports = function prune(str, length, pruneStr) {
+  str = makeString(str);
+  length = ~~length;
+  pruneStr = pruneStr != null ? String(pruneStr) : '...';
+
+  if (str.length <= length) return str;
+
+  var tmpl = function(c) {
+      return c.toUpperCase() !== c.toLowerCase() ? 'A' : ' ';
+    },
+    template = str.slice(0, length + 1).replace(/.(?=\W*\w*$)/g, tmpl); // 'Hello, world' -> 'HellAA AAAAA'
+
+  if (template.slice(template.length - 2).match(/\w\w/))
+    template = template.replace(/\s*\S+$/, '');
+  else
+    template = rtrim(template.slice(0, template.length - 1));
+
+  return (template + pruneStr).length > str.length ? str : str.slice(0, template.length) + pruneStr;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/quote.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/quote.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var surround = __webpack_require__(/*! ./surround */ "./node_modules/underscore.string/surround.js");
+
+module.exports = function quote(str, quoteChar) {
+  return surround(str, quoteChar || '"');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/repeat.js":
+/*!**************************************************!*\
+  !*** ./node_modules/underscore.string/repeat.js ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var strRepeat = __webpack_require__(/*! ./helper/strRepeat */ "./node_modules/underscore.string/helper/strRepeat.js");
+
+module.exports = function repeat(str, qty, separator) {
+  str = makeString(str);
+
+  qty = ~~qty;
+
+  // using faster implementation if separator is not needed;
+  if (separator == null) return strRepeat(str, qty);
+
+  // this one is about 300x slower in Google Chrome
+  /*eslint no-empty: 0*/
+  for (var repeat = []; qty > 0; repeat[--qty] = str) {}
+  return repeat.join(separator);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/replaceAll.js":
+/*!******************************************************!*\
+  !*** ./node_modules/underscore.string/replaceAll.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function replaceAll(str, find, replace, ignorecase) {
+  var flags = (ignorecase === true)?'gi':'g';
+  var reg = new RegExp(find, flags);
+
+  return makeString(str).replace(reg, replace);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/reverse.js":
+/*!***************************************************!*\
+  !*** ./node_modules/underscore.string/reverse.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var chars = __webpack_require__(/*! ./chars */ "./node_modules/underscore.string/chars.js");
+
+module.exports = function reverse(str) {
+  return chars(str).reverse().join('');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/rpad.js":
+/*!************************************************!*\
+  !*** ./node_modules/underscore.string/rpad.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var pad = __webpack_require__(/*! ./pad */ "./node_modules/underscore.string/pad.js");
+
+module.exports = function rpad(str, length, padStr) {
+  return pad(str, length, padStr, 'right');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/rtrim.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/rtrim.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var defaultToWhiteSpace = __webpack_require__(/*! ./helper/defaultToWhiteSpace */ "./node_modules/underscore.string/helper/defaultToWhiteSpace.js");
+var nativeTrimRight = String.prototype.trimRight;
+
+module.exports = function rtrim(str, characters) {
+  str = makeString(str);
+  if (!characters && nativeTrimRight) return nativeTrimRight.call(str);
+  characters = defaultToWhiteSpace(characters);
+  return str.replace(new RegExp(characters + '+$'), '');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/slugify.js":
+/*!***************************************************!*\
+  !*** ./node_modules/underscore.string/slugify.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var trim = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+var dasherize = __webpack_require__(/*! ./dasherize */ "./node_modules/underscore.string/dasherize.js");
+var cleanDiacritics = __webpack_require__(/*! ./cleanDiacritics */ "./node_modules/underscore.string/cleanDiacritics.js");
+
+module.exports = function slugify(str) {
+  return trim(dasherize(cleanDiacritics(str).replace(/[^\w\s-]/g, '-').toLowerCase()), '-');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/splice.js":
+/*!**************************************************!*\
+  !*** ./node_modules/underscore.string/splice.js ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var chars = __webpack_require__(/*! ./chars */ "./node_modules/underscore.string/chars.js");
+
+module.exports = function splice(str, i, howmany, substr) {
+  var arr = chars(str);
+  arr.splice(~~i, ~~howmany, substr);
+  return arr.join('');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/sprintf.js":
+/*!***************************************************!*\
+  !*** ./node_modules/underscore.string/sprintf.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var deprecate = __webpack_require__(/*! util-deprecate */ "./node_modules/util-deprecate/browser.js");
+
+module.exports = deprecate(__webpack_require__(/*! sprintf-js */ "./node_modules/sprintf-js/src/sprintf.js").sprintf,
+  'sprintf() will be removed in the next major release, use the sprintf-js package instead.');
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/startsWith.js":
+/*!******************************************************!*\
+  !*** ./node_modules/underscore.string/startsWith.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var toPositive = __webpack_require__(/*! ./helper/toPositive */ "./node_modules/underscore.string/helper/toPositive.js");
+
+module.exports = function startsWith(str, starts, position) {
+  str = makeString(str);
+  starts = '' + starts;
+  position = position == null ? 0 : Math.min(toPositive(position), str.length);
+  return str.lastIndexOf(starts, position) === position;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/strLeft.js":
+/*!***************************************************!*\
+  !*** ./node_modules/underscore.string/strLeft.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function strLeft(str, sep) {
+  str = makeString(str);
+  sep = makeString(sep);
+  var pos = !sep ? -1 : str.indexOf(sep);
+  return~ pos ? str.slice(0, pos) : str;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/strLeftBack.js":
+/*!*******************************************************!*\
+  !*** ./node_modules/underscore.string/strLeftBack.js ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function strLeftBack(str, sep) {
+  str = makeString(str);
+  sep = makeString(sep);
+  var pos = str.lastIndexOf(sep);
+  return~ pos ? str.slice(0, pos) : str;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/strRight.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/strRight.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function strRight(str, sep) {
+  str = makeString(str);
+  sep = makeString(sep);
+  var pos = !sep ? -1 : str.indexOf(sep);
+  return~ pos ? str.slice(pos + sep.length, str.length) : str;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/strRightBack.js":
+/*!********************************************************!*\
+  !*** ./node_modules/underscore.string/strRightBack.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function strRightBack(str, sep) {
+  str = makeString(str);
+  sep = makeString(sep);
+  var pos = !sep ? -1 : str.lastIndexOf(sep);
+  return~ pos ? str.slice(pos + sep.length, str.length) : str;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/stripTags.js":
+/*!*****************************************************!*\
+  !*** ./node_modules/underscore.string/stripTags.js ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function stripTags(str) {
+  return makeString(str).replace(/<\/?[^>]+>/g, '');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/succ.js":
+/*!************************************************!*\
+  !*** ./node_modules/underscore.string/succ.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var adjacent = __webpack_require__(/*! ./helper/adjacent */ "./node_modules/underscore.string/helper/adjacent.js");
+
+module.exports = function succ(str) {
+  return adjacent(str, 1);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/surround.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/surround.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function surround(str, wrapper) {
+  return [wrapper, str, wrapper].join('');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/swapCase.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/swapCase.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function swapCase(str) {
+  return makeString(str).replace(/\S/g, function(c) {
+    return c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase();
+  });
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/titleize.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/titleize.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function titleize(str) {
+  return makeString(str).toLowerCase().replace(/(?:^|\s|-)\S/g, function(c) {
+    return c.toUpperCase();
+  });
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/toBoolean.js":
+/*!*****************************************************!*\
+  !*** ./node_modules/underscore.string/toBoolean.js ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var trim = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+
+function boolMatch(s, matchers) {
+  var i, matcher, down = s.toLowerCase();
+  matchers = [].concat(matchers);
+  for (i = 0; i < matchers.length; i += 1) {
+    matcher = matchers[i];
+    if (!matcher) continue;
+    if (matcher.test && matcher.test(s)) return true;
+    if (matcher.toLowerCase() === down) return true;
+  }
+}
+
+module.exports = function toBoolean(str, trueValues, falseValues) {
+  if (typeof str === 'number') str = '' + str;
+  if (typeof str !== 'string') return !!str;
+  str = trim(str);
+  if (boolMatch(str, trueValues || ['true', '1'])) return true;
+  if (boolMatch(str, falseValues || ['false', '0'])) return false;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/toNumber.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/toNumber.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function toNumber(num, precision) {
+  if (num == null) return 0;
+  var factor = Math.pow(10, isFinite(precision) ? precision : 0);
+  return Math.round(num * factor) / factor;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/toSentence.js":
+/*!******************************************************!*\
+  !*** ./node_modules/underscore.string/toSentence.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var rtrim = __webpack_require__(/*! ./rtrim */ "./node_modules/underscore.string/rtrim.js");
+
+module.exports = function toSentence(array, separator, lastSeparator, serial) {
+  separator = separator || ', ';
+  lastSeparator = lastSeparator || ' and ';
+  var a = array.slice(),
+    lastMember = a.pop();
+
+  if (array.length > 2 && serial) lastSeparator = rtrim(separator) + lastSeparator;
+
+  return a.length ? a.join(separator) + lastSeparator + lastMember : lastMember;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/toSentenceSerial.js":
+/*!************************************************************!*\
+  !*** ./node_modules/underscore.string/toSentenceSerial.js ***!
+  \************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var toSentence = __webpack_require__(/*! ./toSentence */ "./node_modules/underscore.string/toSentence.js");
+
+module.exports = function toSentenceSerial(array, sep, lastSep) {
+  return toSentence(array, sep, lastSep, true);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/trim.js":
+/*!************************************************!*\
+  !*** ./node_modules/underscore.string/trim.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var defaultToWhiteSpace = __webpack_require__(/*! ./helper/defaultToWhiteSpace */ "./node_modules/underscore.string/helper/defaultToWhiteSpace.js");
+var nativeTrim = String.prototype.trim;
+
+module.exports = function trim(str, characters) {
+  str = makeString(str);
+  if (!characters && nativeTrim) return nativeTrim.call(str);
+  characters = defaultToWhiteSpace(characters);
+  return str.replace(new RegExp('^' + characters + '+|' + characters + '+$', 'g'), '');
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/truncate.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/truncate.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function truncate(str, length, truncateStr) {
+  str = makeString(str);
+  truncateStr = truncateStr || '...';
+  length = ~~length;
+  return str.length > length ? str.slice(0, length) + truncateStr : str;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/underscored.js":
+/*!*******************************************************!*\
+  !*** ./node_modules/underscore.string/underscored.js ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var trim = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+
+module.exports = function underscored(str) {
+  return trim(str).replace(/([a-z\d])([A-Z]+)/g, '$1_$2').replace(/[-\s]+/g, '_').toLowerCase();
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/unescapeHTML.js":
+/*!********************************************************!*\
+  !*** ./node_modules/underscore.string/unescapeHTML.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+var htmlEntities = __webpack_require__(/*! ./helper/htmlEntities */ "./node_modules/underscore.string/helper/htmlEntities.js");
+
+module.exports = function unescapeHTML(str) {
+  return makeString(str).replace(/\&([^;]{1,10});/g, function(entity, entityCode) {
+    var match;
+
+    if (entityCode in htmlEntities) {
+      return htmlEntities[entityCode];
+    /*eslint no-cond-assign: 0*/
+    } else if (match = entityCode.match(/^#x([\da-fA-F]+)$/)) {
+      return String.fromCharCode(parseInt(match[1], 16));
+    /*eslint no-cond-assign: 0*/
+    } else if (match = entityCode.match(/^#(\d+)$/)) {
+      return String.fromCharCode(~~match[1]);
+    } else {
+      return entity;
+    }
+  });
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/unquote.js":
+/*!***************************************************!*\
+  !*** ./node_modules/underscore.string/unquote.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = function unquote(str, quoteChar) {
+  quoteChar = quoteChar || '"';
+  if (str[0] === quoteChar && str[str.length - 1] === quoteChar)
+    return str.slice(1, str.length - 1);
+  else return str;
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/vsprintf.js":
+/*!****************************************************!*\
+  !*** ./node_modules/underscore.string/vsprintf.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var deprecate = __webpack_require__(/*! util-deprecate */ "./node_modules/util-deprecate/browser.js");
+
+module.exports = deprecate(__webpack_require__(/*! sprintf-js */ "./node_modules/sprintf-js/src/sprintf.js").vsprintf,
+  'vsprintf() will be removed in the next major release, use the sprintf-js package instead.');
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/words.js":
+/*!*************************************************!*\
+  !*** ./node_modules/underscore.string/words.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var isBlank = __webpack_require__(/*! ./isBlank */ "./node_modules/underscore.string/isBlank.js");
+var trim = __webpack_require__(/*! ./trim */ "./node_modules/underscore.string/trim.js");
+
+module.exports = function words(str, delimiter) {
+  if (isBlank(str)) return [];
+  return trim(str, delimiter).split(delimiter || /\s+/);
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/underscore.string/wrap.js":
+/*!************************************************!*\
+  !*** ./node_modules/underscore.string/wrap.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+// Wrap
+// wraps a string by a certain width
+
+var makeString = __webpack_require__(/*! ./helper/makeString */ "./node_modules/underscore.string/helper/makeString.js");
+
+module.exports = function wrap(str, options){
+  str = makeString(str);
+  
+  options = options || {};
+  
+  var width = options.width || 75;
+  var seperator = options.seperator || '\n';
+  var cut = options.cut || false;
+  var preserveSpaces = options.preserveSpaces || false;
+  var trailingSpaces = options.trailingSpaces || false;
+  
+  var result;
+  
+  if(width <= 0){
+    return str;
+  }
+  
+  else if(!cut){
+  
+    var words = str.split(' ');
+    var current_column = 0;
+    result = '';
+  
+    while(words.length > 0){
+      
+      // if adding a space and the next word would cause this line to be longer than width...
+      if(1 + words[0].length + current_column > width){
+        //start a new line if this line is not already empty
+        if(current_column > 0){
+          // add a space at the end of the line is preserveSpaces is true
+          if (preserveSpaces){
+            result += ' ';
+            current_column++;
+          }
+          // fill the rest of the line with spaces if trailingSpaces option is true
+          else if(trailingSpaces){
+            while(current_column < width){
+              result += ' ';
+              current_column++;
+            }            
+          }
+          //start new line
+          result += seperator;
+          current_column = 0;
+        }
+      }
+  
+      // if not at the begining of the line, add a space in front of the word
+      if(current_column > 0){
+        result += ' ';
+        current_column++;
+      }
+  
+      // tack on the next word, update current column, a pop words array
+      result += words[0];
+      current_column += words[0].length;
+      words.shift();
+  
+    }
+  
+    // fill the rest of the line with spaces if trailingSpaces option is true
+    if(trailingSpaces){
+      while(current_column < width){
+        result += ' ';
+        current_column++;
+      }            
+    }
+  
+    return result;
+  
+  }
+  
+  else {
+  
+    var index = 0;
+    result = '';
+  
+    // walk through each character and add seperators where appropriate
+    while(index < str.length){
+      if(index % width == 0 && index > 0){
+        result += seperator;
+      }
+      result += str.charAt(index);
+      index++;
+    }
+  
+    // fill the rest of the line with spaces if trailingSpaces option is true
+    if(trailingSpaces){
+      while(index % width > 0){
+        result += ' ';
+        index++;
+      }            
+    }
+    
+    return result;
+  }
+};
+
 
 /***/ }),
 
@@ -22207,6 +24131,85 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
 
 /***/ }),
 
+/***/ "./node_modules/util-deprecate/browser.js":
+/*!************************************************!*\
+  !*** ./node_modules/util-deprecate/browser.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {
+/**
+ * Module exports.
+ */
+
+module.exports = deprecate;
+
+/**
+ * Mark that a method should not be used.
+ * Returns a modified function which warns once by default.
+ *
+ * If `localStorage.noDeprecation = true` is set, then it is a no-op.
+ *
+ * If `localStorage.throwDeprecation = true` is set, then deprecated functions
+ * will throw an Error when invoked.
+ *
+ * If `localStorage.traceDeprecation = true` is set, then deprecated functions
+ * will invoke `console.trace()` instead of `console.error()`.
+ *
+ * @param {Function} fn - the function to deprecate
+ * @param {String} msg - the string to print to the console when `fn` is invoked
+ * @returns {Function} a new "deprecated" version of `fn`
+ * @api public
+ */
+
+function deprecate (fn, msg) {
+  if (config('noDeprecation')) {
+    return fn;
+  }
+
+  var warned = false;
+  function deprecated() {
+    if (!warned) {
+      if (config('throwDeprecation')) {
+        throw new Error(msg);
+      } else if (config('traceDeprecation')) {
+        console.trace(msg);
+      } else {
+        console.warn(msg);
+      }
+      warned = true;
+    }
+    return fn.apply(this, arguments);
+  }
+
+  return deprecated;
+}
+
+/**
+ * Checks `localStorage` for boolean values for the given `name`.
+ *
+ * @param {String} name
+ * @returns {Boolean}
+ * @api private
+ */
+
+function config (name) {
+  // accessing global.localStorage can trigger a DOMException in sandboxed iframes
+  try {
+    if (!global.localStorage) return false;
+  } catch (_) {
+    return false;
+  }
+  var val = global.localStorage[name];
+  if (null == val) return false;
+  return String(val).toLowerCase() === 'true';
+}
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
+
+/***/ }),
+
 /***/ "./node_modules/webpack/buildin/global.js":
 /*!***********************************!*\
   !*** (webpack)/buildin/global.js ***!
@@ -22333,10 +24336,10 @@ module.exports = {
   autoAdd: 1,
 
   // Text on upload input
-  uploadText: 'Drop files here or click to upload',
+  uploadText: 'Arrastrar archivos o hacer click aquí para subir',
 
   // Label for the add button
-  addBtnText: 'Add image',
+  addBtnText: 'Añadir',
 
   // To upload your assets, the module uses Fetch API, with this option you
   // overwrite it with something else.
@@ -22380,7 +24383,7 @@ module.exports = {
   dropzoneContent: '',
 
   // Default title for the asset manager modal
-  modalTitle: 'Select Image',
+  modalTitle: 'Seleccionar imagen',
 
   //Default placeholder for input
   inputPlaceholder: 'http://path/to/the/image.jpg'
@@ -24506,6 +26509,3562 @@ module.exports = _backbone2.default.View.extend({
 
 /***/ }),
 
+/***/ "./src/bootstrap/blocks.js":
+/*!*********************************!*\
+  !*** ./src/bootstrap/blocks.js ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (editor) {
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  var c = config;
+  var bm = editor.BlockManager;
+  var blocks = c.blocks;
+  var cats = c.blockCategories;
+
+  // LAYOUT
+
+  if (cats.layout) {
+
+    bm.add('single-col').set({
+      label: 'Bloque ancho total',
+      category: 'Estructura',
+      attributes: { class: 'fa fa-columns' },
+      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-md-12">\n              <p> Texto </p>\n            </div>\n          </div>\n        </div>\n    '
+    });
+
+    bm.add('two-col').set({
+      label: 'Dos bloques',
+      category: 'Estructura',
+      attributes: { class: 'fa fa-columns' },
+      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-6">\n              <p> Texto </p>\n            </div>\n            <div class="col-6">\n              <p> Texto </p>\n            </div>\n          </div>\n        </div>\n    '
+    });
+
+    bm.add('three-col').set({
+      label: 'Tres bloques',
+      category: 'Estructura',
+      attributes: { class: 'fa fa-columns' },
+      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-4">\n              <p> Texto </p>\n            </div>\n            <div class="col-4">\n              <p> Texto </p>\n            </div>\n            <div class="col-4">\n            <p> Texto </p>\n          </div>\n          </div>\n        </div>\n    '
+    });
+
+    /*
+        if (blocks.container) {
+          bm.add('container').set({
+            label: `
+                <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="far" data-icon="window-maximize" class="svg-inline--fa fa-window-maximize fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm0 394c0 3.3-2.7 6-6 6H54c-3.3 0-6-2.7-6-6V192h416v234z"></path></svg>
+                <div class="gjs-block-label">${c.labels.container}</div>
+            `,
+            category: 'Layout',
+            draggable: true,
+            content: {
+              type: 'container',
+              classes: ['container']
+            }
+          });
+        }
+    
+        if (blocks.row) {
+          bm.add('row').set({
+            label: 
+            `
+                <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="window-maximize" class="svg-inline--fa fa-window-maximize fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm-16 160H64v-84c0-6.6 5.4-12 12-12h360c6.6 0 12 5.4 12 12v84z"></path></svg>
+                <div class="gjs-block-label">${c.labels.row}</div>
+            `,
+            category: 'Layout',
+            draggable: true,
+            content: {
+              type: 'row',
+              classes: ['row']
+            }
+          });
+        }
+    
+        if (blocks.column) {
+          bm.add('column').set({
+            label: `
+                <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="columns" class="svg-inline--fa fa-columns fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 32H48C21.49 32 0 53.49 0 80v352c0 26.51 21.49 48 48 48h416c26.51 0 48-21.49 48-48V80c0-26.51-21.49-48-48-48zM224 416H64V160h160v256zm224 0H288V160h160v256z"></path></svg>
+                <div class="gjs-block-label">${c.labels.column}</div>
+            `,
+            category: 'Layout',
+            draggable: true,
+            content: {
+              type: 'column',
+              classes: ['col']
+            }
+          });
+        }
+    */
+
+    if (blocks.column_break) {
+      bm.add('column_break').set({
+        label: '\n            <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="equals" class="svg-inline--fa fa-equals fa-w-14" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M416 304H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h384c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32zm0-192H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h384c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path></svg>\n            <div class="gjs-block-label"> Salto de bloques </div>\n        ',
+        category: 'Estructura',
+        draggable: true,
+        content: {
+          type: 'column_break'
+        }
+      });
+    }
+
+    if (blocks.media_object) {
+      bm.add('media_object').set({
+        label: c.labels.media_object,
+        category: 'Estructura',
+        attributes: { class: 'fa fa-columns' },
+        content: '<div class="media">\n                 <img class="mr-3" src="">\n                 <div class="media-body">\n                 <h5>Media heading</h5>\n                 <div>Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus.</div>\n                 </div>\n                 </div>'
+      });
+    }
+  }
+
+  // COMPONENTS
+
+  if (cats.components) {
+    /*
+    if (blocks.alert) {
+      bm.add('alert', {
+        label: c.labels.alert,
+        category: 'Components',
+        attributes: { class: 'fa fa-exclamation-triangle' },
+        content: {
+          type: 'alert',
+          content: 'This is an alert—check it out!'
+        }
+      });
+    }
+     if (blocks.tabs) {
+      bm.add('tabs', {
+        label: `
+            <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="ellipsis-h" class="svg-inline--fa fa-ellipsis-h fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M328 256c0 39.8-32.2 72-72 72s-72-32.2-72-72 32.2-72 72-72 72 32.2 72 72zm104-72c-39.8 0-72 32.2-72 72s32.2 72 72 72 72-32.2 72-72-32.2-72-72-72zm-352 0c-39.8 0-72 32.2-72 72s32.2 72 72 72 72-32.2 72-72-32.2-72-72-72z"></path></svg>
+            <div class="gjs-block-label">${c.labels.tabs}</div>
+        `,
+        category: 'Components',
+        content: `
+            <ul class="nav nav-tabs" role="tablist">
+              <li class="nav-item">
+                <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Tab 1</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="profile-tab" data-toggle="tab" href="#profile" role="tab" aria-controls="profile" aria-selected="false">Tab 2</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="contact-tab" data-toggle="tab" href="#contact" role="tab" aria-controls="contact" aria-selected="false">Tab 3</a>
+              </li>
+            </ul>
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab"></div>
+              <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab"></div>
+              <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab"></div>
+            </div>
+        `
+      });
+      bm.add('tabs-tab', {
+        label: `
+            <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="circle" class="svg-inline--fa fa-circle fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="-256 0 1024 1024"><path fill="currentColor" d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8z"></path></svg>
+            <div class="gjs-block-label">${c.labels.tab}</div>
+        `,
+        category: 'Components',
+        content: {
+          type: 'tabs-tab'
+        }
+      });
+      bm.add('tabs-tab-pane', {
+        label: `
+            <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="far" data-icon="window-maximize" class="svg-inline--fa fa-window-maximize fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm0 394c0 3.3-2.7 6-6 6H54c-3.3 0-6-2.7-6-6V192h416v234z"></path></svg>
+            <div class="gjs-block-label">${c.labels.tabPane}</div>
+        `,
+        category: 'Components',
+        content: {
+          type: 'tabs-tab-pane'
+        }
+      });
+    }
+     if (blocks.badge) {
+      bm.add('badge', {
+        label: c.labels.badge,
+        category: 'Components',
+        attributes: { class: 'fa fa-certificate' },
+        content: {
+          type: 'badge',
+          content: 'New!'
+        }
+      });
+    }
+    */
+    bm.add('card', {
+      label: c.labels.card,
+      category: 'Básicos',
+      attributes: { class: 'fa fa-credit-card' },
+      content: {
+        type: 'card'
+      }
+    });
+
+    /*
+        if (blocks.collapse) {
+          bm.add('collapse', {
+            label: c.labels.collapse,
+            category: 'Components',
+            attributes: { class: 'fa fa-compress' },
+            content: {
+              type: 'collapse'
+            }
+          });
+        }
+    
+        if (blocks.dropdown) {
+          bm.add('dropdown', {
+            label: c.labels.dropdown,
+            category: 'Components',
+            attributes: { class: 'fa fa-caret-down' },
+            content: {
+              type: 'dropdown'
+            }
+          });*/
+    /*bm.add('dropdown_menu', {
+      label: c.labels.dropdown_menu,
+      category: 'Components',
+      attributes: {class:'fa fa-caret-down'},
+      content: {
+        type: 'dropdown_menu'
+      }
+    });
+    bm.add('dropdown_item', {
+      label: c.labels.dropdown_item,
+      category: 'Components',
+      attributes: {class:'fa fa-link'},
+      content: {
+        type: 'dropdown_item'
+      }
+    });*/
+  }
+
+  // TYPOGRAPHY
+
+  if (cats.typography) {
+    if (blocks.text) {
+      bm.add('text', {
+        label: c.labels.text,
+        category: 'Textos',
+        attributes: { class: 'fa fa-font' },
+        content: {
+          type: 'text',
+          content: 'Insert your text here'
+        }
+      });
+    }
+
+    if (blocks.header) {
+      bm.add('header', {
+        label: c.labels.header,
+        category: 'Textos',
+        attributes: { class: 'fa fa-header' },
+        content: {
+          type: 'header',
+          content: 'Bootstrap heading'
+        }
+      });
+    }
+
+    if (blocks.paragraph) {
+      bm.add('paragraph', {
+        label: c.labels.paragraph,
+        category: 'Textos',
+        attributes: { class: 'fa fa-paragraph' },
+        content: {
+          type: 'paragraph',
+          content: 'Texto de relleno del párrafo.'
+        }
+      });
+    }
+  }
+
+  // BASIC
+
+  if (cats.basic) {
+    if (blocks.link) {
+      bm.add('link', {
+        label: c.labels.link,
+        category: 'Básicos',
+        attributes: { class: 'fa fa-link' },
+        content: {
+          type: 'link',
+          content: 'Link text'
+        }
+      });
+    }
+
+    if (blocks.image) {
+      // example of how we might include encoded image as default src. i like the idea but it mucks up the settings src field
+      //let default_src = 'data:image/png;base64,iVB\ORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAABlBMVEU\AAAD///+l2Z/dAAAAM0lEQVR4nGP4/5/h/1+G/58ZDrAz3D/McH8\yw83NDDeNGe4Ug9C9zwz3gVLMDA/A6P9/AFGGFyjOXZtQAAAAAEl\FTkSuQmCC'
+      bm.add('image', {
+        label: c.labels.image,
+        category: 'Básicos',
+        attributes: { class: 'fa fa-picture-o' },
+        content: {
+          type: 'image'
+        }
+      });
+    }
+
+    /*if (blocks.list) {
+      bm.add('list', {
+        label: c.labels.list,
+        category: 'Basic',
+        attributes: {class:'fa fa-list'},
+        content: {
+          type: 'list'
+        }
+      });
+    }*/
+  }
+
+  // FORMS
+  /*
+  if (blocks.form) {
+    bm.add('form', {
+      label: `
+      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path class="gjs-block-svg-path" d="M22,5.5 C22,5.2 21.5,5 20.75,5 L3.25,5 C2.5,5 2,5.2 2,5.5 L2,8.5 C2,8.8 2.5,9 3.25,9 L20.75,9 C21.5,9 22,8.8 22,8.5 L22,5.5 Z M21,8 L3,8 L3,6 L21,6 L21,8 Z" fill-rule="nonzero"></path>
+        <path class="gjs-block-svg-path" d="M22,10.5 C22,10.2 21.5,10 20.75,10 L3.25,10 C2.5,10 2,10.2 2,10.5 L2,13.5 C2,13.8 2.5,14 3.25,14 L20.75,14 C21.5,14 22,13.8 22,13.5 L22,10.5 Z M21,13 L3,13 L3,11 L21,11 L21,13 Z" fill-rule="nonzero"></path>
+        <rect class="gjs-block-svg-path" x="2" y="15" width="10" height="3" rx="0.5"></rect>
+      </svg>
+      <div class="gjs-block-label">${c.labels.form}</div>`,
+      category: 'Forms',
+      content: `
+        <form>
+          <div class="form-group">
+            <label>Name</label>
+            <input placeholder="Type here your name" class="form-control"/>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" placeholder="Type here your email" class="form-control"/>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" value="M">
+            <label class="form-check-label">M</label>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" value="F">
+            <label class="form-check-label">F</label>
+          </div>
+          <div class="form-group">
+            <label>Message</label>
+            <textarea class="form-control"></textarea>
+          </div>
+          <div class="form-group">
+            <button type="submit" class="btn btn-primary">Send</button>
+          </div>
+        </form>
+      `,
+    });
+  }
+  */
+
+  /*
+  if (blocks.input) {
+    bm.add('input', {
+      label: `
+      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z"></path>
+        <polygon class="gjs-block-svg-path" points="4 10 5 10 5 14 4 14"></polygon>
+      </svg>
+      <div class="gjs-block-label">${c.labels.input}</div>`,
+      category: 'Forms',
+      content: '<input class="form-control"/>',
+    });
+    bm.add('file-input', {
+      label: `
+            <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z"></path>
+              <polygon class="gjs-block-svg-path" points="4 10 5 10 5 14 4 14"></polygon>
+            </svg>
+            <div class="gjs-block-label">${c.labels.file_input}</div>
+        `,
+      category: 'Forms',
+      content: `<input type="file" class="form-control-file" id="exampleFormControlFile1">`
+    });
+  }
+   if (blocks.form_group_input) {
+    bm.add('form_group_input', {
+      label: `
+      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z"></path>
+        <polygon class="gjs-block-svg-path" points="4 10 5 10 5 14 4 14"></polygon>
+      </svg>
+      <div class="gjs-block-label">${c.labels.form_group_input}</div>`,
+      category: 'Forms',
+      content: `
+      <div class="form-group">
+        <label>Name</label>
+        <input placeholder="Type here your name" class="form-control"/>
+      </div>
+      `,
+    });
+  }
+   if (blocks.input_group) {
+    bm.add('input_group', {
+      label: `
+      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z"></path>
+        <polygon class="gjs-block-svg-path" points="4 10 5 10 5 14 4 14"></polygon>
+      </svg>
+      <div class="gjs-block-label">${c.labels.input_group}</div>`,
+      category: 'Forms',
+      content: `
+      <div class="input-group">
+        <div class="input-group-prepend">
+          <span class="input-group-text">$</span>
+        </div>
+        <input type="text" class="form-control" aria-label="Amount (to the nearest dollar)">
+        <div class="input-group-append">
+          <span class="input-group-text">.00</span>
+        </div>
+      </div>
+      `,
+    });
+  }
+   if (blocks.textarea) {
+    bm.add('textarea', {
+      label: `
+      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path class="gjs-block-svg-path" d="M22,7.5 C22,6.6 21.5,6 20.75,6 L3.25,6 C2.5,6 2,6.6 2,7.5 L2,16.5 C2,17.4 2.5,18 3.25,18 L20.75,18 C21.5,18 22,17.4 22,16.5 L22,7.5 Z M21,17 L3,17 L3,7 L21,7 L21,17 Z"></path>
+        <polygon class="gjs-block-svg-path" points="4 8 5 8 5 12 4 12"></polygon>
+        <polygon class="gjs-block-svg-path" points="19 7 20 7 20 17 19 17"></polygon>
+        <polygon class="gjs-block-svg-path" points="20 8 21 8 21 9 20 9"></polygon>
+        <polygon class="gjs-block-svg-path" points="20 15 21 15 21 16 20 16"></polygon>
+      </svg>
+      <div class="gjs-block-label">${c.labels.textarea}</div>`,
+      category: 'Forms',
+      content: '<textarea class="form-control"></textarea>',
+    });
+  }
+   if (blocks.select) {
+    bm.add('select', {
+      label: `
+      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z" fill-rule="nonzero"></path>
+        <polygon class="gjs-block-svg-path" transform="translate(18.500000, 12.000000) scale(1, -1) translate(-18.500000, -12.000000) " points="18.5 11 20 13 17 13"></polygon>
+        <rect class="gjs-block-svg-path" x="4" y="11.5" width="11" height="1"></rect>
+      </svg>
+      <div class="gjs-block-label">${c.labels.select}</div>`,
+      category: 'Forms',
+      content: `<select class="form-control">
+        ${c.labels.select_option ? `<option value="">${c.labels.select_option}</option>` : ''}
+        <option value="1">${c.labels.option} 1</option>
+        </select>`,
+    });
+  }
+  */
+  if (blocks.button) {
+    bm.add('button', {
+      label: '\n      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">\n        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z" fill-rule="nonzero"></path>\n        <rect class="gjs-block-svg-path" x="4" y="11.5" width="16" height="1"></rect>\n      </svg>\n      <div class="gjs-block-label">Bot\xF3n Principal</div>',
+      category: 'Botones',
+      content: '<button class="btn btn-primary"> Texto Botón </button>'
+    });
+  }
+
+  if (blocks.button) {
+    bm.add('button-danger', {
+      label: '\n      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">\n        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z" fill-rule="nonzero"></path>\n        <rect class="gjs-block-svg-path" x="4" y="11.5" width="16" height="1"></rect>\n      </svg>\n      <div class="gjs-block-label">Bot\xF3n Alerta</div>',
+      category: 'Botones',
+      content: '<button class="btn btn-danger"> Texto Botón </button>'
+    });
+  }
+
+  /*
+  if (blocks.button_group) {
+    bm.add('button_group', {
+      label: c.labels.button_group,
+      category: 'Forms',
+      attributes: {class:'fa fa-link'},
+      content: {
+        type: 'button_group'
+      }
+    });
+  }
+   if (blocks.button_toolbar) {
+    bm.add('button_toolbar', {
+      label: c.labels.button_toolbar,
+      category: 'Forms',
+      attributes: {class:'fa fa-link'},
+      content: {
+        type: 'button_toolbar'
+      }
+    });
+  }
+   if (blocks.label) {
+    bm.add('label', {
+      label: `
+      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path class="gjs-block-svg-path" d="M22,11.875 C22,11.35 21.5,11 20.75,11 L3.25,11 C2.5,11 2,11.35 2,11.875 L2,17.125 C2,17.65 2.5,18 3.25,18 L20.75,18 C21.5,18 22,17.65 22,17.125 L22,11.875 Z M21,17 L3,17 L3,12 L21,12 L21,17 Z" fill-rule="nonzero"></path>
+        <rect class="gjs-block-svg-path" x="2" y="5" width="14" height="5" rx="0.5"></rect>
+        <polygon class="gjs-block-svg-path" fill-rule="nonzero" points="4 13 5 13 5 16 4 16"></polygon>
+      </svg>
+      <div class="gjs-block-label">${c.labels.label}</div>`,
+      category: 'Forms',
+      content: '<label>Label</label>',
+    });
+  }
+   if (blocks.checkbox) {
+    bm.add('checkbox', {
+      label: c.labels.checkbox,
+      attributes: {class:'fa fa-check-square'},
+      category: 'Forms',
+      content: `
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
+          <label class="form-check-label" for="defaultCheck1">
+            Default checkbox
+          </label>
+        </div>
+      `,
+    });
+  }
+   if (blocks.radio) {
+    bm.add('radio', {
+      label: c.labels.radio,
+      attributes: {class:'fa fa-dot-circle-o'},
+      category: 'Forms',
+      content: `
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1" checked>
+          <label class="form-check-label" for="exampleRadios1">
+            Default radio
+          </label>
+        </div>
+      `,
+    });
+  }
+  */
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/commands.js":
+/*!***********************************!*\
+  !*** ./src/bootstrap/commands.js ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+//import _s from 'underscore.string';
+exports.default = function (editor) {
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  var commands = editor.Commands;
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components.js":
+/*!*************************************!*\
+  !*** ./src/bootstrap/components.js ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _underscore3 = __webpack_require__(/*! underscore.string */ "./node_modules/underscore.string/index.js");
+
+var _underscore4 = _interopRequireDefault(_underscore3);
+
+var _collapse = __webpack_require__(/*! ./components/collapse */ "./src/bootstrap/components/collapse.js");
+
+var _collapse2 = _interopRequireDefault(_collapse);
+
+var _Dropdown = __webpack_require__(/*! ./components/Dropdown */ "./src/bootstrap/components/Dropdown.js");
+
+var _Dropdown2 = _interopRequireDefault(_Dropdown);
+
+var _TabsNavigation = __webpack_require__(/*! ./components/tabs/TabsNavigation */ "./src/bootstrap/components/tabs/TabsNavigation.js");
+
+var _TabsNavigation2 = _interopRequireDefault(_TabsNavigation);
+
+var _TabsPanes = __webpack_require__(/*! ./components/tabs/TabsPanes */ "./src/bootstrap/components/tabs/TabsPanes.js");
+
+var _TabsPanes2 = _interopRequireDefault(_TabsPanes);
+
+var _Tab = __webpack_require__(/*! ./components/tabs/Tab */ "./src/bootstrap/components/tabs/Tab.js");
+
+var _Tab2 = _interopRequireDefault(_Tab);
+
+var _TabPane = __webpack_require__(/*! ./components/tabs/TabPane */ "./src/bootstrap/components/tabs/TabPane.js");
+
+var _TabPane2 = _interopRequireDefault(_TabPane);
+
+var _Form = __webpack_require__(/*! ./components/Form */ "./src/bootstrap/components/Form.js");
+
+var _Form2 = _interopRequireDefault(_Form);
+
+var _Input = __webpack_require__(/*! ./components/Input */ "./src/bootstrap/components/Input.js");
+
+var _Input2 = _interopRequireDefault(_Input);
+
+var _InputGroup = __webpack_require__(/*! ./components/InputGroup */ "./src/bootstrap/components/InputGroup.js");
+
+var _InputGroup2 = _interopRequireDefault(_InputGroup);
+
+var _Textarea = __webpack_require__(/*! ./components/Textarea */ "./src/bootstrap/components/Textarea.js");
+
+var _Textarea2 = _interopRequireDefault(_Textarea);
+
+var _Select = __webpack_require__(/*! ./components/Select */ "./src/bootstrap/components/Select.js");
+
+var _Select2 = _interopRequireDefault(_Select);
+
+var _Checkbox = __webpack_require__(/*! ./components/Checkbox */ "./src/bootstrap/components/Checkbox.js");
+
+var _Checkbox2 = _interopRequireDefault(_Checkbox);
+
+var _Radio = __webpack_require__(/*! ./components/Radio */ "./src/bootstrap/components/Radio.js");
+
+var _Radio2 = _interopRequireDefault(_Radio);
+
+var _Button = __webpack_require__(/*! ./components/Button */ "./src/bootstrap/components/Button.js");
+
+var _Button2 = _interopRequireDefault(_Button);
+
+var _ButtonGroup = __webpack_require__(/*! ./components/ButtonGroup */ "./src/bootstrap/components/ButtonGroup.js");
+
+var _ButtonGroup2 = _interopRequireDefault(_ButtonGroup);
+
+var _ButtonToolbar = __webpack_require__(/*! ./components/ButtonToolbar */ "./src/bootstrap/components/ButtonToolbar.js");
+
+var _ButtonToolbar2 = _interopRequireDefault(_ButtonToolbar);
+
+var _Label = __webpack_require__(/*! ./components/Label */ "./src/bootstrap/components/Label.js");
+
+var _Label2 = _interopRequireDefault(_Label);
+
+var _Link = __webpack_require__(/*! ./components/Link */ "./src/bootstrap/components/Link.js");
+
+var _Link2 = _interopRequireDefault(_Link);
+
+var _FileInput = __webpack_require__(/*! ./components/FileInput */ "./src/bootstrap/components/FileInput.js");
+
+var _FileInput2 = _interopRequireDefault(_FileInput);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+exports.default = function (editor) {
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+
+  var img_src_default = 'https://dummyimage.com/450x250/999/222';
+
+  var contexts = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark'];
+
+  var contexts_w_white = contexts.concat(['white']);
+
+  var sizes = {
+    'lg': 'Large',
+    'sm': 'Small'
+  };
+
+  var c = config;
+  var domc = editor.DomComponents;
+  var blocks = c.blocks;
+  var cats = c.blockCategories;
+
+  var defaultType = domc.getType('default');
+  var defaultModel = defaultType.model;
+  var defaultView = defaultType.view;
+
+  var textType = domc.getType('text');
+  var textModel = textType.model;
+  var textView = textType.view;
+
+  var imageType = domc.getType('image');
+  var imageModel = imageType.model;
+  var imageView = imageType.view;
+
+  var traits = {
+    id: {
+      name: 'id',
+      label: c.labels.trait_id
+    },
+    for: {
+      name: 'for',
+      label: c.labels.trait_for
+    },
+    name: {
+      name: 'name',
+      label: c.labels.trait_name
+    },
+    placeholder: {
+      name: 'placeholder',
+      label: c.labels.trait_placeholder
+    },
+    value: {
+      name: 'value',
+      label: c.labels.trait_value
+    },
+    required: {
+      type: 'checkbox',
+      name: 'required',
+      label: c.labels.trait_required
+    },
+    checked: {
+      label: c.labels.trait_checked,
+      type: 'checkbox',
+      name: 'checked',
+      changeProp: 1
+    }
+  };
+
+  // Rebuild the default component and add utility settings to it (border, bg, color, etc)
+  if (cats.basic) {
+    if (blocks.default) {
+      domc.addType('default', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            tagName: 'div',
+            traits: [{
+              type: 'class_select',
+              options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(contexts_w_white.map(function (v) {
+                return { value: 'text-' + v, name: _underscore4.default.capitalize(v) };
+              }))),
+              label: 'Text color'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(contexts_w_white.map(function (v) {
+                return { value: 'bg-' + v, name: _underscore4.default.capitalize(v) };
+              }))),
+              label: 'Background color'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'Default' }, { value: 'border', name: 'Full' }, { value: 'border-top-0', name: 'No top' }, { value: 'border-right-0', name: 'No right' }, { value: 'border-bottom-0', name: 'No bottom' }, { value: 'border-left-0', name: 'No left' }, { value: 'border-0', name: 'None' }],
+              label: 'Border width'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(contexts_w_white.map(function (v) {
+                return { value: 'border border-' + v, name: _underscore4.default.capitalize(v) };
+              }))),
+              label: 'Border color'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'Default' }, { value: 'rounded', name: 'Rounded' }, { value: 'rounded-top', name: 'Rounded top' }, { value: 'rounded-right', name: 'Rounded right' }, { value: 'rounded-bottom', name: 'Rounded bottom' }, { value: 'rounded-left', name: 'Rounded left' }, { value: 'rounded-circle', name: 'Circle' }, { value: 'rounded-0', name: 'Square' }],
+              label: 'Border radius'
+            }, {
+              type: 'text',
+              label: 'ID',
+              name: 'id',
+              placeholder: 'my_element'
+            }, {
+              type: 'text',
+              label: 'Title',
+              name: 'title',
+              placeholder: 'My Element'
+            }] //.concat(defaultModel.prototype.defaults.traits)
+          }),
+          init: function init() {
+            var classes = this.get('classes');
+            classes.bind('add', this.classesChanged.bind(this));
+            classes.bind('change', this.classesChanged.bind(this));
+            classes.bind('remove', this.classesChanged.bind(this));
+            this.init2();
+          },
+
+          /* BS comps use init2, not init */
+          init2: function init2() {},
+
+          /* method where we can check if we should changeType */
+          classesChanged: function classesChanged() {},
+
+          /* replace the comp with a copy of a different type */
+          changeType: function changeType(new_type) {
+            var coll = this.collection;
+            var at = coll.indexOf(this);
+            var button_opts = {
+              type: new_type,
+              style: this.getStyle(),
+              attributes: this.getAttributes(),
+              content: this.view.el.innerHTML
+            };
+            coll.remove(this);
+            coll.add(button_opts, { at: at });
+            this.destroy();
+          }
+        }),
+        view: defaultView
+      });
+      defaultType = domc.getType('default');
+      defaultModel = defaultType.model;
+      defaultView = defaultType.view;
+    }
+
+    // Rebuild the text component and add display utility setting
+    if (blocks.text) {
+      domc.addType('text', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Text',
+            tagName: 'div',
+            droppable: true,
+            editable: true
+          })
+        }, {
+          /*isComponent(el) {
+            if(el && el.dataset && el.dataset.bsText) {
+              return {type: 'text'};
+            }
+          }*/
+        }),
+        view: textView
+      });
+      textType = domc.getType('text');
+      textModel = textType.model;
+      textView = textType.view;
+    }
+
+    // Rebuild the link component with settings for collapse-control
+    if (blocks.link) {
+      (0, _Link2.default)(editor, config);
+    }
+
+    if (blocks.image) {
+      domc.addType('image', {
+        model: imageModel.extend({
+          defaults: Object.assign({}, imageModel.prototype.defaults, {
+            'custom-name': 'Imagen',
+            tagName: 'img',
+            resizable: 1,
+            attributes: {
+              src: img_src_default
+            },
+            traits: [{
+              type: 'text',
+              label: 'Fuente (URL)',
+              name: 'src'
+            }, {
+              type: 'text',
+              label: 'Texto Alternativo',
+              name: 'alt'
+            }].concat(imageModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.tagName == 'IMG') {
+              return { type: 'image' };
+            }
+          }
+        }),
+        view: imageView
+      });
+      imageType = domc.getType('image');
+      imageModel = imageType.model;
+      imageView = imageType.view;
+    }
+
+    // Basic
+
+    /*if (blocks.list) {
+      domc.addType('list', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'List',
+            tagName: 'ul',
+            resizable: 1,
+            traits: [
+              {
+                type: 'select',
+                options: [
+                  {value: 'ul', name: 'No'},
+                  {value: 'ol', name: 'Yes'}
+                ],
+                label: 'Ordered?',
+                name: 'tagName',
+                changeProp: 1
+              }
+            ].concat(defaultModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent: function(el) {
+            if(el && ['UL','OL'].includes(el.tagName)) {
+              return {type: 'list'};
+            }
+          }
+        }),
+        view: defaultView
+      });
+    }*/
+
+    /*if (blocks.description_list) {
+    }*/
+  }
+
+  // LAYOUT
+
+  if (cats.layout) {
+
+    // Container
+
+    if (blocks.container) {
+      domc.addType('container', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Contenedor',
+            tagName: 'div',
+            droppable: true,
+            traits: [{
+              type: 'class_select',
+              options: [{ value: 'container', name: 'Fixed' }, { value: 'container-fluid', name: 'Fluid' }],
+              label: 'Width'
+            }].concat(defaultModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && (el.classList.contains('container') || el.classList.contains('container-fluid'))) {
+              return { type: 'container' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+    }
+
+    // Row
+
+    if (blocks.row) {
+      domc.addType('row', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Row',
+            tagName: 'div',
+            draggable: '.container, .container-fluid',
+            droppable: true,
+            traits: [{
+              type: 'class_select',
+              options: [{ value: '', name: 'Yes' }, { value: 'no-gutters', name: 'No' }],
+              label: 'Gutters?'
+            }].concat(defaultModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('row')) {
+              return { type: 'row' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+    }
+
+    // Column & Column Break
+
+    if (blocks.column) {
+      domc.addType('column', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Columna',
+            draggable: '.row',
+            droppable: true,
+            traits: [{
+              type: 'class_select',
+              options: [{ value: 'col', name: 'Equal' }, { value: 'col-auto', name: 'Variable' }].concat(_toConsumableArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'col-' + i, name: i + '/12' };
+              }))),
+              label: 'XS Width'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }, { value: 'col-sm', name: 'Equal' }, { value: 'col-sm-auto', name: 'Variable' }].concat(_toConsumableArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'col-sm-' + i, name: i + '/12' };
+              }))),
+              label: 'SM Width'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }, { value: 'col-md', name: 'Equal' }, { value: 'col-md-auto', name: 'Variable' }].concat(_toConsumableArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'col-md-' + i, name: i + '/12' };
+              }))),
+              label: 'MD Width'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }, { value: 'col-lg', name: 'Equal' }, { value: 'col-lg-auto', name: 'Variable' }].concat(_toConsumableArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'col-lg-' + i, name: i + '/12' };
+              }))),
+              label: 'LG Width'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }, { value: 'col-xl', name: 'Equal' }, { value: 'col-xl-auto', name: 'Variable' }].concat(_toConsumableArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'col-xl-' + i, name: i + '/12' };
+              }))),
+              label: 'XL Width'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }].concat(_toConsumableArray([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'offset-' + i, name: i + '/12' };
+              }))),
+              label: 'XS Offset'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }].concat(_toConsumableArray([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'offset-sm-' + i, name: i + '/12' };
+              }))),
+              label: 'SM Offset'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }].concat(_toConsumableArray([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'offset-md-' + i, name: i + '/12' };
+              }))),
+              label: 'MD Offset'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }].concat(_toConsumableArray([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'offset-lg-' + i, name: i + '/12' };
+              }))),
+              label: 'LG Offset'
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }].concat(_toConsumableArray([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (i) {
+                return { value: 'offset-xl-' + i, name: i + '/12' };
+              }))),
+              label: 'XL Offset'
+            }].concat(defaultModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            var match = false;
+            if (el && el.classList) {
+              el.classList.forEach(function (klass) {
+                if (klass == "col" || klass.match(/^col-/)) {
+                  match = true;
+                }
+              });
+            }
+            if (match) return { type: 'column' };
+          }
+        }),
+        view: defaultView
+      });
+
+      domc.addType('column_break', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Column Break',
+            tagName: 'div',
+            classes: ['w-100']
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('w-100')) {
+              // also check if parent is `.row`
+              return { type: 'column_break' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+
+      // Media object
+
+      domc.addType('media_object', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Media Object',
+            tagName: 'div',
+            classes: ['media']
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('media')) {
+              return { type: 'media' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+
+      domc.addType('media_body', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Media Body',
+            tagName: 'div',
+            classes: ['media-body']
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('media-body')) {
+              return { type: 'media_body' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+    }
+  }
+
+  // Bootstrap COMPONENTS
+
+  if (cats.components) {
+
+    /*
+    // Alert
+     if (blocks.alert) {
+      domc.addType('alert', {
+        model: textModel.extend({
+          defaults: Object.assign({}, textModel.prototype.defaults, {
+            'custom-name': 'Alert',
+            tagName: 'div',
+            classes: ['alert'],
+            traits: [
+              {
+                type: 'class_select',
+                options: [
+                  {value: '', name: 'None'},
+                  ... contexts.map(function(v) { return {value: 'alert-'+v, name: _s.capitalize(v)} })
+                ],
+                label: 'Context'
+              }
+            ].concat(textModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent(el) {
+            if(el && el.classList && el.classList.contains('alert')) {
+              return {type: 'alert'};
+            }
+          }
+        }),
+        view: textView
+      });
+    }
+     if (blocks.tabs) {
+      TabsNavigation(domc, config);
+      Tab(domc, config);
+      TabsPanes(domc, config);
+      TabPane(domc, config);
+    }
+     // Badge
+     if (blocks.badge) {
+      domc.addType('badge', {
+        model: textModel.extend({
+          defaults: Object.assign({}, textModel.prototype.defaults, {
+            'custom-name': 'Badge',
+            tagName: 'span',
+            classes: ['badge'],
+            traits: [
+              {
+                type: 'class_select',
+                options: [
+                  {value: '', name: 'None'},
+                  ... contexts.map(function(v) { return {value: 'badge-'+v, name: _s.capitalize(v)} })
+                ],
+                label: 'Context'
+              },
+              {
+                type: 'class_select',
+                options: [
+                  {value: '', name: 'Default'},
+                  {value: 'badge-pill', name: 'Pill'},
+                ],
+                label: 'Shape'
+              }
+            ].concat(textModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent(el) {
+            if(el && el.classList && el.classList.contains('badge')) {
+              return {type: 'badge'};
+            }
+          }
+        }),
+        view: textView
+      });
+    }
+    */
+
+    // Card
+
+    if (blocks.card) {
+      domc.addType('card', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Card',
+            classes: ['card'],
+            traits: [{
+              type: 'checkbox',
+              label: 'Image Top',
+              name: 'card-img-top',
+              changeProp: 1
+            }, {
+              type: 'checkbox',
+              label: 'Header',
+              name: 'card-header',
+              changeProp: 1
+            }, {
+              type: 'checkbox',
+              label: 'Image',
+              name: 'card-img',
+              changeProp: 1
+            }, {
+              type: 'checkbox',
+              label: 'Image Overlay',
+              name: 'card-img-overlay',
+              changeProp: 1
+            }, {
+              type: 'checkbox',
+              label: 'Body',
+              name: 'card-body',
+              changeProp: 1
+            }, {
+              type: 'checkbox',
+              label: 'Footer',
+              name: 'card-footer',
+              changeProp: 1
+            }, {
+              type: 'checkbox',
+              label: 'Image Bottom',
+              name: 'card-img-bottom',
+              changeProp: 1
+            }].concat(defaultModel.prototype.defaults.traits)
+          }),
+          init2: function init2() {
+            this.listenTo(this, 'change:card-img-top', this.cardImageTop);
+            this.listenTo(this, 'change:card-header', this.cardHeader);
+            this.listenTo(this, 'change:card-img', this.cardImage);
+            this.listenTo(this, 'change:card-img-overlay', this.cardImageOverlay);
+            this.listenTo(this, 'change:card-body', this.cardBody);
+            this.listenTo(this, 'change:card-footer', this.cardFooter);
+            this.listenTo(this, 'change:card-img-bottom', this.cardImageBottom);
+            this.components().comparator = 'card-order';
+            this.set('card-img-top', true);
+            this.set('card-body', true);
+          },
+          cardImageTop: function cardImageTop() {
+            this.createCardComponent('card-img-top');
+          },
+          cardHeader: function cardHeader() {
+            this.createCardComponent('card-header');
+          },
+          cardImage: function cardImage() {
+            this.createCardComponent('card-img');
+          },
+          cardImageOverlay: function cardImageOverlay() {
+            this.createCardComponent('card-img-overlay');
+          },
+          cardBody: function cardBody() {
+            this.createCardComponent('card-body');
+          },
+          cardFooter: function cardFooter() {
+            this.createCardComponent('card-footer');
+          },
+          cardImageBottom: function cardImageBottom() {
+            this.createCardComponent('card-img-bottom');
+          },
+          createCardComponent: function createCardComponent(prop) {
+            var state = this.get(prop);
+            var type = prop.replace(/-/g, '_').replace(/img/g, 'image');
+            var children = this.components();
+            var existing = children.filter(function (comp) {
+              return comp.attributes.type == type;
+            })[0]; // should only be one of each.
+
+            if (state && !existing) {
+              var comp = children.add({
+                type: type
+              });
+              var comp_children = comp.components();
+              if (prop == 'card-header') {
+                comp_children.add({
+                  type: 'header',
+                  tagName: 'h4',
+                  style: { 'margin-bottom': '0px' },
+                  content: 'Encabezado'
+                });
+              }
+              if (prop == 'card-img-overlay') {
+                comp_children.add({
+                  type: 'header',
+                  tagName: 'h4',
+                  classes: ['card-title'],
+                  content: 'Titulo'
+                });
+                comp_children.add({
+                  type: 'text',
+                  tagName: 'p',
+                  classes: ['card-text'],
+                  content: "Texto de ejemplo, doble click para reemplazar."
+                });
+              }
+              if (prop == 'card-body') {
+                comp_children.add({
+                  type: 'header',
+                  tagName: 'h4',
+                  classes: ['card-title'],
+                  content: 'Title'
+                });
+                comp_children.add({
+                  type: 'header',
+                  tagName: 'h6',
+                  classes: ['card-subtitle', 'text-muted', 'mb-2'],
+                  content: 'Subtitle'
+                });
+                comp_children.add({
+                  type: 'text',
+                  tagName: 'p',
+                  classes: ['card-text'],
+                  content: "Texto de ejemplo, doble click para reemplazar."
+                });
+                comp_children.add({
+                  type: 'link',
+                  classes: ['card-link'],
+                  href: '#',
+                  content: 'link'
+                });
+                comp_children.add({
+                  type: 'link',
+                  classes: ['card-link'],
+                  href: '#',
+                  content: 'otro link'
+                });
+              }
+              this.order();
+            } else if (!state) {
+              existing.destroy();
+            }
+          },
+          order: function order() {}
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('card')) {
+              return { type: 'card' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+
+      domc.addType('card_image_top', {
+        model: imageModel.extend({
+          defaults: Object.assign({}, imageModel.prototype.defaults, {
+            'custom-name': 'Imágen Superior',
+            classes: ['card-img-top'],
+            'card-order': 1
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('card-img-top')) {
+              return { type: 'card_image_top' };
+            }
+          }
+        }),
+        view: imageView
+      });
+
+      domc.addType('card_header', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Card Header',
+            classes: ['card-header'],
+            'card-order': 2
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('card-header')) {
+              return { type: 'card_header' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+
+      domc.addType('card_image', {
+        model: imageModel.extend({
+          defaults: Object.assign({}, imageModel.prototype.defaults, {
+            'custom-name': 'Card Image',
+            classes: ['card-img'],
+            'card-order': 3
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('card-img')) {
+              return { type: 'card_image' };
+            }
+          }
+        }),
+        view: imageView
+      });
+
+      domc.addType('card_image_overlay', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Card Image Overlay',
+            classes: ['card-img-overlay'],
+            'card-order': 4
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('card-img-overlay')) {
+              return { type: 'card_image_overlay' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+
+      domc.addType('card_body', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Card Body',
+            classes: ['card-body'],
+            'card-order': 5
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('card-body')) {
+              return { type: 'card_body' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+
+      domc.addType('card_footer', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Card Footer',
+            classes: ['card-footer'],
+            'card-order': 6
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('card-footer')) {
+              return { type: 'card_footer' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+
+      domc.addType('card_image_bottom', {
+        model: imageModel.extend({
+          defaults: Object.assign({}, imageModel.prototype.defaults, {
+            'custom-name': 'Card Image Bottom',
+            classes: ['card-img-bottom'],
+            'card-order': 7
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && el.classList.contains('card-img-bottom')) {
+              return { type: 'card_image_bottom' };
+            }
+          }
+        }),
+        view: imageView
+      });
+
+      domc.addType('card_container', {
+        model: defaultModel.extend({
+          defaults: Object.assign({}, defaultModel.prototype.defaults, {
+            'custom-name': 'Card Container',
+            classes: ['card-group'],
+            droppable: '.card',
+            traits: [{
+              type: 'class_select',
+              options: [{ value: 'card-group', name: 'Group' }, { value: 'card-deck', name: 'Deck' }, { value: 'card-columns', name: 'Columns' }],
+              label: 'Estructura'
+            }].concat(defaultModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.classList && _underscore2.default.intersection(el.classList, ['card-group', 'card-deck', 'card-columns']).length) {
+              return { type: 'card_container' };
+            }
+          }
+        }),
+        view: defaultView
+      });
+    }
+
+    // Collapse
+
+    if (blocks.collapse) {
+      (0, _collapse2.default)(editor, config);
+    }
+
+    // Dropdown
+
+    if (blocks.dropdown) {
+      (0, _Dropdown2.default)(editor, config);
+    }
+  }
+
+  // TYPOGRAPHY
+
+  if (cats.typography) {
+
+    // Header
+
+    if (blocks.header) {
+      domc.addType('header', {
+        model: textModel.extend({
+          defaults: Object.assign({}, textModel.prototype.defaults, {
+            'custom-name': 'Header',
+            tagName: 'h1',
+            traits: [{
+              type: 'select',
+              options: [{ value: 'h1', name: 'One (largest)' }, { value: 'h2', name: 'Two' }, { value: 'h3', name: 'Three' }, { value: 'h4', name: 'Four' }, { value: 'h5', name: 'Five' }, { value: 'h6', name: 'Six (smallest)' }],
+              label: 'Size',
+              name: 'tagName',
+              changeProp: 1
+            }, {
+              type: 'class_select',
+              options: [{ value: '', name: 'None' }, { value: 'display-1', name: 'One (largest)' }, { value: 'display-2', name: 'Two ' }, { value: 'display-3', name: 'Three ' }, { value: 'display-4', name: 'Four (smallest)' }],
+              label: 'Display Heading'
+            }].concat(textModel.prototype.defaults.traits)
+          })
+
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(el.tagName)) {
+              return { type: 'header' };
+            }
+          }
+        }),
+        view: textView
+      });
+    }
+
+    if (blocks.paragraph) {
+      domc.addType('paragraph', {
+        model: textModel.extend({
+          defaults: Object.assign({}, textModel.prototype.defaults, {
+            'custom-name': 'Párrafo',
+            tagName: 'p',
+            traits: [{
+              type: 'class_select',
+              options: [{ value: '', name: 'No' }, { value: 'lead', name: 'Yes' }],
+              label: 'Lead?'
+            }].concat(textModel.prototype.defaults.traits)
+          })
+        }, {
+          isComponent: function isComponent(el) {
+            if (el && el.tagName && el.tagName === 'P') {
+              return { type: 'paragraph' };
+            }
+          }
+        }),
+        view: textView
+      });
+    }
+  }
+
+  if (cats.forms) {
+
+    (0, _Form2.default)(domc, traits, config);
+    (0, _Input2.default)(domc, traits, config);
+    (0, _FileInput2.default)(domc, traits, config);
+    (0, _InputGroup2.default)(domc, traits, config);
+    (0, _Textarea2.default)(domc, traits, config);
+    (0, _Select2.default)(editor, domc, traits, config);
+    (0, _Checkbox2.default)(domc, traits, config);
+    (0, _Radio2.default)(domc, traits, config);
+    (0, _Label2.default)(domc, traits, config);
+
+    if (blocks.button) {
+      (0, _Button2.default)(domc, traits, contexts, sizes, config);
+    }
+
+    if (blocks.button_group) {
+      (0, _ButtonGroup2.default)(domc, traits, contexts, sizes, config);
+    }
+
+    if (blocks.button_toolbar) {
+      (0, _ButtonToolbar2.default)(domc, config);
+    }
+  }
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Button.js":
+/*!********************************************!*\
+  !*** ./src/bootstrap/components/Button.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _underscore = __webpack_require__(/*! underscore.string */ "./node_modules/underscore.string/index.js");
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+exports.default = function (dc, traits, contexts, sizes) {
+    var config = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
+
+
+    var linkType = dc.getType('link');
+    var linkModel = linkType.model;
+    var linkView = linkType.view;
+
+    dc.addType('button', {
+        model: linkModel.extend({
+            defaults: Object.assign({}, linkModel.prototype.defaults, {
+                'custom-name': 'Botón',
+                droppable: false,
+                attributes: {
+                    role: 'button'
+                },
+                classes: ['btn'],
+                traits: [{
+                    type: 'class_select',
+                    options: [{ value: '', name: 'None' }].concat(_toConsumableArray(contexts.map(function (v) {
+                        return { value: 'btn-' + v, name: _underscore2.default.capitalize(v) };
+                    })), _toConsumableArray(contexts.map(function (v) {
+                        return { value: 'btn-outline-' + v, name: _underscore2.default.capitalize(v) + ' (Outline)' };
+                    }))),
+                    label: 'Context'
+                }, {
+                    type: 'class_select',
+                    options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(Object.keys(sizes).map(function (k) {
+                        return { value: 'btn-' + k, name: sizes[k] };
+                    }))),
+                    label: 'Size'
+                }, {
+                    type: 'class_select',
+                    options: [{ value: '', name: 'Inline' }, { value: 'btn-block', name: 'Block' }],
+                    label: 'Width'
+                }].concat(linkModel.prototype.defaults.traits)
+            }),
+            /*init2() {
+              linkModel.prototype.init2.call(this); // call parent init in this context.
+            },*/
+            afterChange: function afterChange(e) {
+                if (this.attributes.type == 'button') {
+                    if (this.attributes.classes.filter(function (klass) {
+                        return klass.id == 'btn';
+                    }).length == 0) {
+                        this.changeType('link');
+                    }
+                }
+            }
+        }, {
+            isComponent: function isComponent(el) {
+                if (el && el.classList && el.classList.contains('btn')) {
+                    return { type: 'button' };
+                }
+            }
+        }),
+        view: linkView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/ButtonGroup.js":
+/*!*************************************************!*\
+  !*** ./src/bootstrap/components/ButtonGroup.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+exports.default = function (dc, traits, contexts, sizes) {
+    var config = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
+
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+
+    dc.addType('button_group', {
+        model: defaultModel.extend({
+            defaults: Object.assign({}, defaultModel.prototype.defaults, {
+                'custom-name': 'Button Group',
+                tagName: 'div',
+                classes: ['btn-group'],
+                droppable: '.btn',
+                attributes: {
+                    role: 'group'
+                },
+                traits: [{
+                    type: 'class_select',
+                    options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(Object.keys(sizes).map(function (k) {
+                        return { value: 'btn-group-' + k, name: sizes[k] };
+                    }))),
+                    label: 'Size'
+                }, {
+                    type: 'class_select',
+                    options: [{ value: '', name: 'Horizontal' }, { value: 'btn-group-vertical', name: 'Vertical' }],
+                    label: 'Size'
+                }, {
+                    type: 'Text',
+                    label: 'ARIA Label',
+                    name: 'aria-label',
+                    placeholder: 'A group of buttons'
+                }].concat(defaultModel.prototype.defaults.traits)
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el && el.classList && el.classList.contains('btn-group')) {
+                    return { type: 'button_group' };
+                }
+            }
+        }),
+        view: defaultView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/ButtonToolbar.js":
+/*!***************************************************!*\
+  !*** ./src/bootstrap/components/ButtonToolbar.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+exports.default = function (dc) {
+    var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+
+    dc.addType('button_toolbar', {
+        model: defaultModel.extend({
+            defaults: Object.assign({}, defaultModel.prototype.defaults, {
+                'custom-name': 'Button Toolbar',
+                tagName: 'div',
+                classes: ['btn-toolbar'],
+                droppable: '.btn-group',
+                attributes: {
+                    role: 'toolbar'
+                },
+                traits: [{
+                    type: 'Text',
+                    label: 'ARIA Label',
+                    name: 'aria-label',
+                    placeholder: 'A toolbar of button groups'
+                }].concat(defaultModel.prototype.defaults.traits)
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el && el.classList && el.classList.contains('btn-toolbar')) {
+                    return { type: 'button_toolbar' };
+                }
+            }
+        }),
+        view: defaultView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Checkbox.js":
+/*!**********************************************!*\
+  !*** ./src/bootstrap/components/Checkbox.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (dc, traits) {
+    var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+    var inputType = dc.getType('input');
+    var inputModel = inputType.model;
+
+    dc.addType('checkbox', {
+        model: defaultModel.extend({
+            defaults: _extends({}, inputModel.prototype.defaults, {
+                'custom-name': config.labels.checkbox_name,
+                copyable: false,
+                droppable: false,
+                attributes: { type: 'checkbox' },
+                traits: [traits.id, traits.name, traits.value, traits.required, traits.checked]
+            }),
+
+            init: function init() {
+                this.listenTo(this, 'change:checked', this.handleChecked);
+            },
+            handleChecked: function handleChecked() {
+                var checked = this.get('checked');
+                var attrs = this.get('attributes');
+                var view = this.view;
+
+                if (checked) {
+                    attrs.checked = true;
+                } else {
+                    delete attrs.checked;
+                }
+
+                if (view) {
+                    view.el.checked = checked;
+                }
+
+                this.set('attributes', _extends({}, attrs));
+            }
+        }, {
+            isComponent: function isComponent(el) {
+                if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+                    return { type: 'checkbox' };
+                }
+            }
+        }),
+        view: defaultView.extend({
+            events: {
+                'click': 'handleClick'
+            },
+
+            handleClick: function handleClick(e) {
+                e.preventDefault();
+            }
+        })
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Dropdown.js":
+/*!**********************************************!*\
+  !*** ./src/bootstrap/components/Dropdown.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+/*
+known issues:
+- BS dropdown JS isn't attached if you remove the existing toggle and add a new one
+*/
+
+exports.default = function (editor) {
+    var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    var comps = editor.DomComponents;
+    var defaultType = comps.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+
+    function hasEvent(comp) {
+        var eca = comp._events['change:attributes'];
+        if (!eca) return false;
+        return eca.filter(function (e) {
+            return e.callback.name === 'setupToggle';
+        }).length !== 0;
+    }
+
+    comps.addType('dropdown', {
+        model: defaultModel.extend({
+            defaults: _extends({}, defaultModel.prototype.defaults, {
+                'custom-name': 'Dropdown',
+                classes: ['dropdown'],
+                droppable: 'a, button, .dropdown-menu',
+                traits: [{
+                    type: 'select',
+                    label: 'Initial state',
+                    name: 'initial_state',
+                    options: [{ value: '', name: 'Closed' }, { value: 'show', name: 'Open' }]
+                }].concat(defaultModel.prototype.defaults.traits)
+            }),
+
+            init2: function init2() {
+                var toggle = {
+                    type: 'button',
+                    content: 'Click to toggle',
+                    classes: ['btn', 'dropdown-toggle']
+                };
+                var toggle_comp = this.append(toggle)[0];
+                var menu = {
+                    type: 'dropdown_menu'
+                };
+                var menu_comp = this.append(menu)[0];
+                this.setupToggle(null, null, { force: true });
+                var comps = this.components();
+                comps.bind('add', this.setupToggle.bind(this));
+                comps.bind('remove', this.setupToggle.bind(this));
+                var classes = this.get('classes');
+                classes.bind('add', this.setupToggle.bind(this));
+                classes.bind('change', this.setupToggle.bind(this));
+                classes.bind('remove', this.setupToggle.bind(this));
+            },
+            setupToggle: function setupToggle(a, b) {
+                var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+                var toggle = this.components().filter(function (c) {
+                    return c.getAttributes().class.split(' ').includes('dropdown-toggle');
+                })[0];
+                var menu = this.components().filter(function (c) {
+                    return c.getAttributes().class.split(' ').includes('dropdown-menu');
+                })[0];
+
+                if (options.force !== true && options.ignore === true) {
+                    return;
+                }
+
+                if (toggle && menu) {
+
+                    // setup event listeners if they aren't set
+                    if (!hasEvent(toggle)) {
+                        this.listenTo(toggle, 'change:attributes', this.setupToggle);
+                    }
+                    if (!hasEvent(menu)) {
+                        this.listenTo(menu, 'change:attributes', this.setupToggle);
+                    }
+
+                    // setup toggle
+                    var toggle_attrs = toggle.getAttributes();
+                    toggle_attrs['role'] = 'button';
+                    var menu_attrs = menu.getAttributes();
+                    if (!toggle_attrs.hasOwnProperty('data-toggle')) {
+                        toggle_attrs['data-toggle'] = 'dropdown';
+                    }
+                    if (!toggle_attrs.hasOwnProperty('aria-haspopup')) {
+                        toggle_attrs['aria-haspopup'] = true;
+                    }
+
+                    toggle.set('attributes', toggle_attrs, { ignore: true });
+
+                    // setup menu
+                    // toggle needs ID for aria-labelled on the menu, could alert here
+                    if (toggle_attrs.hasOwnProperty('id')) {
+                        menu_attrs['aria-labelledby'] = toggle_attrs.id;
+                    } else {
+                        delete menu_attrs['aria-labelledby'];
+                    }
+                    menu.set('attributes', menu_attrs, { ignore: true });
+                }
+            },
+            updated: function updated(property, value) {
+                if (value.hasOwnProperty('initial_state')) {
+                    var menu = this.components().filter(function (c) {
+                        return c.getAttributes().class.split(' ').includes('dropdown-menu');
+                    })[0];
+                    var attrs = menu.getAttributes();
+                    var classes = attrs.class.split(' ');
+
+                    if (classes.includes('show')) {
+                        // Close the menu
+                        attrs['aria-expanded'] = false;
+                        menu.removeClass('show');
+                    } else {
+                        // Open the menu
+                        attrs['aria-expanded'] = true;
+                        menu.addClass('show');
+                    }
+                }
+            }
+        }, {
+            isComponent: function isComponent(el) {
+                if (el && el.classList && el.classList.contains('dropdown')) {
+                    return { type: 'dropdown' };
+                }
+            }
+        }),
+        view: defaultView
+    });
+
+    // need aria-labelledby to equal dropdown-toggle id
+    // need to insert dropdown-item class on links when added
+    comps.addType('dropdown_menu', {
+        model: defaultModel.extend({
+            defaults: Object.assign({}, defaultModel.prototype.defaults, {
+                'custom-name': 'Dropdown Menu',
+                classes: ['dropdown-menu'],
+                draggable: '.dropdown',
+                droppable: true
+            }),
+            init2: function init2() {
+                var header = {
+                    type: 'header',
+                    tagName: 'h6',
+                    classes: ['dropdown-header'],
+                    content: 'Dropdown header'
+                };
+                var link = {
+                    type: 'link',
+                    classes: ['dropdown-item'],
+                    content: 'Dropdown item'
+                };
+                var divider = {
+                    type: 'default',
+                    classes: ['dropdown-divider']
+                };
+                this.append(header);
+                this.append(link);
+                this.append(divider);
+                this.append(link);
+            }
+        }, {
+            isComponent: function isComponent(el) {
+                if (el && el.classList && el.classList.contains('dropdown-menu')) {
+                    return { type: 'dropdown_menu' };
+                }
+            }
+        }),
+        view: defaultView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/FileInput.js":
+/*!***********************************************!*\
+  !*** ./src/bootstrap/components/FileInput.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _utils = __webpack_require__(/*! ../utils */ "./src/bootstrap/utils.js");
+
+exports.default = function (dc, traits) {
+    var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+    var type = 'file-input';
+
+    dc.addType(type, {
+        model: defaultModel.extend({
+            defaults: _extends({}, defaultModel.prototype.defaults, {
+                'custom-name': config.labels.input,
+                tagName: 'input',
+                draggable: 'form .form-group',
+                droppable: false,
+                traits: [traits.name, traits.required, {
+                    type: 'checkbox',
+                    label: config.labels.trait_multiple,
+                    name: 'multiple'
+                }]
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el.tagName === 'INPUT' && (0, _utils.elHasClass)(el, 'form-control-file')) {
+                    return { type: type };
+                }
+            }
+        }),
+        view: defaultView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Form.js":
+/*!******************************************!*\
+  !*** ./src/bootstrap/components/Form.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (dc, traits) {
+    var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+    var actionTrait = void 0;
+
+    // If the formPredefinedActions is set in the config you can add a dropdown menu to the actions trait
+    if (config.formPredefinedActions && config.formPredefinedActions.length) {
+        actionTrait = {
+            type: 'select',
+            label: config.labels.trait_action,
+            name: 'action',
+            options: []
+        };
+        config.formPredefinedActions.forEach(function (action) {
+            actionTrait.options.push({ value: action.value, name: action.name });
+        });
+    } else {
+        actionTrait = {
+            label: config.labels.trait_action,
+            name: 'action'
+        };
+    }
+
+    dc.addType('form', {
+        model: defaultModel.extend({
+            defaults: _extends({}, defaultModel.prototype.defaults, {
+                droppable: ':not(form)',
+                draggable: ':not(form)',
+                traits: [{
+                    type: 'select',
+                    label: config.labels.trait_enctype,
+                    name: 'enctype',
+                    options: [{ value: 'application/x-www-form-urlencoded', name: 'application/x-www-form-urlencoded (default)' }, { value: 'multipart/form-data', name: 'multipart/form-data' }, { value: 'text/plain', name: 'text/plain' }]
+                }, {
+                    type: 'select',
+                    label: config.labels.trait_method,
+                    name: 'method',
+                    options: [{ value: 'post', name: 'POST' }, { value: 'get', name: 'GET' }]
+                }, actionTrait]
+            }),
+
+            init: function init() {
+                this.listenTo(this, 'change:formState', this.updateFormState);
+            },
+            updateFormState: function updateFormState() {
+                var state = this.get('formState');
+                switch (state) {
+                    case 'success':
+                        this.showState('success');
+                        break;
+                    case 'error':
+                        this.showState('error');
+                        break;
+                    default:
+                        this.showState('normal');
+                }
+            },
+            showState: function showState(state) {
+                var st = state || 'normal';
+                var failVis, successVis;
+                if (st === 'success') {
+                    failVis = 'none';
+                    successVis = 'block';
+                } else if (st === 'error') {
+                    failVis = 'block';
+                    successVis = 'none';
+                } else {
+                    failVis = 'none';
+                    successVis = 'none';
+                }
+                var successModel = this.getStateModel('success');
+                var failModel = this.getStateModel('error');
+                var successStyle = successModel.getStyle();
+                var failStyle = failModel.getStyle();
+                successStyle.display = successVis;
+                failStyle.display = failVis;
+                successModel.setStyle(successStyle);
+                failModel.setStyle(failStyle);
+            },
+            getStateModel: function getStateModel(state) {
+                var st = state || 'success';
+                var stateName = 'form-state-' + st;
+                var stateModel;
+                var comps = this.get('components');
+                for (var i = 0; i < comps.length; i++) {
+                    var model = comps.models[i];
+                    if (model.get('form-state-type') === st) {
+                        stateModel = model;
+                        break;
+                    }
+                }
+                if (!stateModel) {
+                    var contentStr = formMsgSuccess;
+                    if (st === 'error') {
+                        contentStr = formMsgError;
+                    }
+                    stateModel = comps.add({
+                        'form-state-type': st,
+                        type: 'text',
+                        removable: false,
+                        copyable: false,
+                        draggable: false,
+                        attributes: { 'data-form-state': st },
+                        content: contentStr
+                    });
+                }
+                return stateModel;
+            }
+        }, {
+            isComponent: function isComponent(el) {
+                if (el.tagName === 'FORM') {
+                    return { type: 'form' };
+                }
+            }
+        }),
+
+        view: defaultView.extend({
+            events: {
+                submit: function submit(e) {
+                    e.preventDefault();
+                }
+            }
+        })
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Input.js":
+/*!*******************************************!*\
+  !*** ./src/bootstrap/components/Input.js ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (dc, traits) {
+    var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+
+    dc.addType('input', {
+        model: defaultModel.extend({
+            defaults: _extends({}, defaultModel.prototype.defaults, {
+                'custom-name': config.labels.input,
+                tagName: 'input',
+                draggable: 'form .form-group',
+                droppable: false,
+                traits: [traits.value, traits.name, traits.placeholder, {
+                    label: config.labels.trait_type,
+                    type: 'select',
+                    name: 'type',
+                    options: [{ value: 'text', name: config.labels.type_text }, { value: 'email', name: config.labels.type_email }, { value: 'password', name: config.labels.type_password }, { value: 'number', name: config.labels.type_number }, { value: 'date', name: config.labels.type_date }, { value: 'hidden', name: config.labels.type_hidden }]
+                }, traits.required]
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el.tagName === 'INPUT') {
+                    return { type: 'input' };
+                }
+            }
+        }),
+        view: defaultView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/InputGroup.js":
+/*!************************************************!*\
+  !*** ./src/bootstrap/components/InputGroup.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (dc, traits) {
+    var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+
+    dc.addType('input_group', {
+        model: defaultModel.extend({
+            defaults: _extends({}, defaultModel.prototype.defaults, {
+                'custom-name': config.labels.input_group,
+                tagName: 'div',
+                traits: []
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el && el.classList && el.classList.contains('form_group_input')) {
+                    return { type: 'form_group_input' };
+                }
+            }
+        }),
+        view: defaultView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Label.js":
+/*!*******************************************!*\
+  !*** ./src/bootstrap/components/Label.js ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (dc, traits) {
+    var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+
+    var textType = dc.getType('text');
+    var textModel = textType.model;
+    var textView = textType.view;
+
+    dc.addType('label', {
+        model: textModel.extend({
+            defaults: _extends({}, textModel.prototype.defaults, {
+                'custom-name': config.labels.label,
+                tagName: 'label',
+                traits: [traits.for]
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el.tagName == 'LABEL') {
+                    return { type: 'label' };
+                }
+            }
+        }),
+        view: textView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Link.js":
+/*!******************************************!*\
+  !*** ./src/bootstrap/components/Link.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (editor) {
+    var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    var comps = editor.DomComponents;
+    var textType = comps.getType('text');
+    var textModel = textType.model;
+
+    var linkType = comps.getType('link');
+    var linkView = linkType.view;
+
+    comps.addType('link', {
+        model: textModel.extend({
+            defaults: Object.assign({}, textModel.prototype.defaults, {
+                'custom-name': 'Link',
+                tagName: 'a',
+                droppable: true,
+                editable: true,
+                traits: [{
+                    type: 'text',
+                    label: 'Href',
+                    name: 'href',
+                    placeholder: 'https://www.grapesjs.com'
+                }, {
+                    type: 'select',
+                    options: [{ value: '', name: 'This window' }, { value: '_blank', name: 'New window' }],
+                    label: 'Target',
+                    name: 'target'
+                }, {
+                    type: 'select',
+                    options: [{ value: '', name: 'None' }, { value: 'button', name: 'Self' }, { value: 'collapse', name: 'Collapse' }, { value: 'dropdown', name: 'Dropdown' }],
+                    label: 'Toggles',
+                    name: 'data-toggle',
+                    changeProp: 1
+                }].concat(textModel.prototype.defaults.traits)
+            }),
+            init2: function init2() {
+                //textModel.prototype.init.call(this);
+                this.listenTo(this, 'change:data-toggle', this.setupToggle);
+                this.listenTo(this, 'change:attributes', this.setupToggle); // for when href changes
+            },
+            setupToggle: function setupToggle(a, b) {
+                var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+                // TODO this should be in the dropdown comp and not the link comp
+                if (options.ignore === true && options.force !== true) {
+                    return;
+                }
+                console.log('setup toggle');
+                var attrs = this.getAttributes();
+                var href = attrs.href;
+                // old attributes are not removed from DOM even if deleted...
+                delete attrs['data-toggle'];
+                delete attrs['aria-expanded'];
+                delete attrs['aria-controls'];
+                delete attrs['aria-haspopup'];
+                if (href && href.length > 0 && href.match(/^#/)) {
+                    console.log('link has href');
+                    // find the el where id == link href
+                    var els = this.em.get('Editor').DomComponents.getWrapper().find(href);
+                    if (els.length > 0) {
+                        console.log('referenced el found');
+                        var el = els[0]; // should only be one el with this ID
+                        var el_attrs = el.getAttributes();
+                        //delete el_attrs['aria-labelledby'];
+                        var el_classes = el_attrs.class;
+                        if (el_classes) {
+                            console.log('el has classes');
+                            var el_classes_list = el_classes.split(' ');
+                            var intersection = _underscore2.default.intersection(['collapse', 'dropdown-menu'], el_classes_list);
+                            if (intersection.length) {
+                                console.log('link data-toggle matches el class');
+                                switch (intersection[0]) {
+                                    case 'collapse':
+                                        attrs['data-toggle'] = 'collapse';
+                                        break;
+                                }
+                                attrs['aria-expanded'] = el_classes_list.includes('show');
+                                if (intersection[0] === 'collapse') {
+                                    attrs['aria-controls'] = href.substring(1);
+                                }
+                            }
+                        }
+                    }
+                }
+                this.set('attributes', attrs, { ignore: true });
+            },
+            classesChanged: function classesChanged(e) {
+                console.log('classes changed');
+                if (this.attributes.type === 'link') {
+                    if (this.attributes.classes.filter(function (klass) {
+                        return klass.id === 'btn';
+                    }).length > 0) {
+                        this.changeType('button');
+                    }
+                }
+            }
+        }, {
+            isComponent: function isComponent(el) {
+                if (el && el.tagName && el.tagName === 'A') {
+                    return { type: 'link' };
+                }
+            }
+        }),
+        view: linkView
+    });
+}; /*
+   known issues:
+   - BS dropdown JS isn't attached if you remove the existing toggle and add a new one
+   */
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Radio.js":
+/*!*******************************************!*\
+  !*** ./src/bootstrap/components/Radio.js ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (dc, traits) {
+    var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    var checkType = dc.getType('checkbox');
+
+    // RADIO
+    dc.addType('radio', {
+        model: checkType.model.extend({
+            defaults: _extends({}, checkType.model.prototype.defaults, {
+                'custom-name': config.labels.radio,
+                attributes: { type: 'radio' }
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el.tagName === 'INPUT' && el.type === 'radio') {
+                    return { type: 'radio' };
+                }
+            }
+        }),
+        view: checkType.view
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Select.js":
+/*!********************************************!*\
+  !*** ./src/bootstrap/components/Select.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (editor, dc, traits) {
+    var config = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var inputType = dc.getType('input');
+    var inputModel = inputType.model;
+
+    var preventDefaultClick = function preventDefaultClick() {
+        return defaultType.view.extend({
+            events: {
+                'mousedown': 'handleClick'
+            },
+
+            handleClick: function handleClick(e) {
+                e.preventDefault();
+            }
+        });
+    };
+
+    // SELECT
+    dc.addType('select', {
+        model: defaultModel.extend({
+            defaults: _extends({}, inputModel.prototype.defaults, {
+                'custom-name': config.labels.select,
+                tagName: 'select',
+                traits: [traits.name, {
+                    label: config.labels.trait_options,
+                    type: 'select-options'
+                }, traits.required]
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el.tagName === 'SELECT') {
+                    return { type: 'select' };
+                }
+            }
+        }),
+        view: preventDefaultClick()
+    });
+
+    var traitManager = editor.TraitManager;
+    traitManager.addType('select-options', {
+        events: {
+            'keyup': 'onChange'
+        },
+
+        onValueChange: function onValueChange() {
+            var optionsStr = this.model.get('value').trim();
+            var options = optionsStr.split('\n');
+            var optComps = [];
+
+            for (var i = 0; i < options.length; i++) {
+                var optionStr = options[i];
+                var option = optionStr.split(config.optionsStringSeparator);
+                var opt = {
+                    tagName: 'option',
+                    attributes: {}
+                };
+                if (option[1]) {
+                    opt.content = option[1];
+                    opt.attributes.value = option[0];
+                } else {
+                    opt.content = option[0];
+                    opt.attributes.value = option[0];
+                }
+                optComps.push(opt);
+            }
+
+            var comps = this.target.get('components');
+            comps.reset(optComps);
+            this.target.view.render();
+        },
+
+        getInputEl: function getInputEl() {
+            if (!this.$input) {
+                var target = this.target;
+                var optionsStr = '';
+                var options = target.get('components');
+
+                for (var i = 0; i < options.length; i++) {
+                    var option = options.models[i];
+                    var optAttr = option.get('attributes');
+                    var optValue = optAttr.value || '';
+                    optionsStr += '' + optValue + config.optionsStringSeparator + option.get('content') + '\n';
+                }
+
+                this.$input = document.createElement('textarea');
+                this.$input.value = optionsStr;
+            }
+            return this.$input;
+        }
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/Textarea.js":
+/*!**********************************************!*\
+  !*** ./src/bootstrap/components/Textarea.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+exports.default = function (dc, traits) {
+    var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultView = defaultType.view;
+    var inputType = dc.getType('input');
+    var inputModel = inputType.model;
+
+    // TEXTAREA
+    dc.addType('textarea', {
+        model: inputModel.extend({
+            defaults: _extends({}, inputModel.prototype.defaults, {
+                'custom-name': config.labels.textarea,
+                tagName: 'textarea',
+                traits: [traits.name, traits.placeholder, traits.required]
+            })
+        }, {
+            isComponent: function isComponent(el) {
+                if (el.tagName === 'TEXTAREA') {
+                    return { type: 'textarea' };
+                }
+            }
+        }),
+        view: defaultView
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/collapse.js":
+/*!**********************************************!*\
+  !*** ./src/bootstrap/components/collapse.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _underscore3 = __webpack_require__(/*! underscore.string */ "./node_modules/underscore.string/index.js");
+
+var _underscore4 = _interopRequireDefault(_underscore3);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/*
+known issues:
+*/
+
+exports.default = function (editor) {
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  var comps = editor.DomComponents;
+  var defaultType = comps.getType('default');
+  var defaultModel = defaultType.model;
+  var defaultView = defaultType.view;
+
+  comps.addType('collapse', {
+    model: defaultModel.extend({
+      defaults: Object.assign({}, defaultModel.prototype.defaults, {
+        'custom-name': 'Dropdown',
+        classes: ['collapse'],
+        droppable: true,
+        traits: [{
+          type: 'class_select',
+          options: [{ value: '', name: 'Closed' }, { value: 'show', name: 'Open' }],
+          label: 'Initial state'
+        }].concat(defaultModel.prototype.defaults.traits)
+      })
+      /*init2() {
+        window.asdf = this;
+        const toggle = {
+          type: 'button',
+          content: 'Click to toggle',
+          classes: ['btn', 'dropdown-toggle']
+        }
+        const toggle_comp = this.append(toggle)[0];
+        const menu = {
+          type: 'dropdown_menu'
+        }
+        const menu_comp = this.append(menu)[0];
+        this.setupToggle(null, null, {force: true});
+        const comps = this.components();
+        comps.bind('add', this.setupToggle.bind(this));
+        comps.bind('change', this.setupToggle.bind(this));
+        comps.bind('remove', this.setupToggle.bind(this));
+        const classes = this.get('classes');
+        classes.bind('add', this.setupToggle.bind(this));
+        classes.bind('change', this.setupToggle.bind(this));
+        classes.bind('remove', this.setupToggle.bind(this));
+      },
+      setupToggle(a, b, options = {}) {
+        const toggle = this.components().filter(c => c.getAttributes().class.split(' ').includes('dropdown-toggle'))[0];
+        // raise error if toggle not found
+        const menu = this.components().filter(c => c.getAttributes().class.split(' ').includes('dropdown-menu'))[0];
+        // raise error if menu not found
+          if(options.force !== true && options.ignore === true) {
+          return;
+        }
+          if(toggle && menu) {
+            function hasEvent(comp) {
+            let eca = comp._events['change:attributes'];
+            if(!eca) return false;
+            return eca.filter(e => e.callback.name == 'setupToggle').length != 0;
+          }
+            // setup event listeners if they aren't set
+          if(!hasEvent(toggle)) {
+            this.listenTo(toggle, 'change:attributes', this.setupToggle);
+          }
+          if(!hasEvent(menu)) {
+            this.listenTo(menu, 'change:attributes', this.setupToggle);
+          }
+            // setup toggle
+          var toggle_attrs = toggle.getAttributes();
+          toggle_attrs['role'] = 'button'; // if A
+          var menu_attrs = menu.getAttributes();
+          if(!toggle_attrs.hasOwnProperty('data-toggle')) {
+            toggle_attrs['data-toggle'] = 'dropdown';
+          }
+          if(!toggle_attrs.hasOwnProperty('aria-haspopup')) {
+            toggle_attrs['aria-haspopup'] = true;
+          }
+          const dropdown_classes = this.getAttributes().class.split(' ');
+          toggle_attrs['aria-expanded'] = dropdown_classes.includes('show');
+          toggle.set('attributes', toggle_attrs, {ignore: true});
+          // setup menu
+          // toggle needs ID for aria-labelled on the menu, could alert here
+          if(toggle_attrs.hasOwnProperty('id')) {
+            menu_attrs['aria-labelledby'] = toggle_attrs.id;
+          } else {
+            delete menu_attrs['aria-labelledby'];
+          }
+          menu.set('attributes', menu_attrs, {ignore: true});
+        }
+      }*/
+    }, {
+      isComponent: function isComponent(el) {
+        if (el && el.classList && el.classList.contains('dropdown')) {
+          return { type: 'dropdown' };
+        }
+      }
+    }),
+    view: defaultView.extend({
+      /*init() {
+        this.model.setupToggle
+      }*/
+    })
+  });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/tabs/Tab.js":
+/*!**********************************************!*\
+  !*** ./src/bootstrap/components/tabs/Tab.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _constants = __webpack_require__(/*! ./constants */ "./src/bootstrap/components/tabs/constants.js");
+
+var _constants2 = _interopRequireDefault(_constants);
+
+var _utils = __webpack_require__(/*! ../../utils */ "./src/bootstrap/utils.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (dc) {
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  var defaultType = dc.getType('default');
+  var defaultModel = defaultType.model;
+  var defaultView = defaultType.view;
+  var tabName = _constants2.default.tabName,
+      navigationSelector = _constants2.default.navigationSelector;
+
+  var classId = config.classTab;
+  var type = tabName;
+
+  dc.addType(type, {
+
+    model: defaultModel.extend({
+      defaults: _extends({}, defaultModel.prototype.defaults, {
+        name: 'Tab',
+        tagName: 'li',
+        copyable: true,
+        draggable: navigationSelector
+
+      }),
+
+      init: function init() {
+        this.get('classes').pluck('name').indexOf(classId) < 0 && this.addClass(classId);
+      }
+    }, {
+      isComponent: function isComponent(el) {
+        if ((0, _utils.elHasClass)(el, classId)) return { type: type };
+      }
+    }),
+
+    view: defaultView.extend({
+      init: function init() {
+        var comps = this.model.components();
+
+        // Add a basic template if it's not yet initialized
+        if (!comps.length) {
+          comps.add('\n              <a class="nav-link active" id="tab-1" data-toggle="tab" href="#tab-pane-1" role="tab" aria-controls="tab" aria-selected="true">Tab</a>\n          ');
+        }
+      }
+    })
+  });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/tabs/TabPane.js":
+/*!**************************************************!*\
+  !*** ./src/bootstrap/components/tabs/TabPane.js ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _constants = __webpack_require__(/*! ./constants */ "./src/bootstrap/components/tabs/constants.js");
+
+var _constants2 = _interopRequireDefault(_constants);
+
+var _utils = __webpack_require__(/*! ../../utils */ "./src/bootstrap/utils.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (dc) {
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  var defaultType = dc.getType('default');
+  var defaultModel = defaultType.model;
+  var defaultView = defaultType.view;
+  var tabPaneName = _constants2.default.tabPaneName,
+      tabPanesSelector = _constants2.default.tabPanesSelector;
+
+  var classId = config.classTabPane;
+  var type = tabPaneName;
+
+  dc.addType(type, {
+
+    model: defaultModel.extend({
+      defaults: _extends({}, defaultModel.prototype.defaults, {
+        name: 'Tab Pane',
+        copyable: true,
+        draggable: tabPanesSelector,
+
+        traits: ['id', {
+          type: 'class_select',
+          options: [{ value: 'fade', name: 'Fade' }, { value: '', name: 'None' }],
+          label: 'Animation'
+        }, {
+          type: 'class_select',
+          options: [{ value: '', name: 'Inactive' }, { value: 'active', name: 'Active' }],
+          label: 'Is Active'
+        }]
+      }),
+
+      init: function init() {
+        this.get('classes').pluck('name').indexOf(classId) < 0 && this.addClass(classId);
+      }
+    }, {
+      isComponent: function isComponent(el) {
+        if ((0, _utils.elHasClass)(el, classId)) return { type: type };
+      }
+    }),
+
+    view: defaultView
+  });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/tabs/TabsNavigation.js":
+/*!*********************************************************!*\
+  !*** ./src/bootstrap/components/tabs/TabsNavigation.js ***!
+  \*********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _constants = __webpack_require__(/*! ./constants */ "./src/bootstrap/components/tabs/constants.js");
+
+var _constants2 = _interopRequireDefault(_constants);
+
+var _utils = __webpack_require__(/*! ../../utils */ "./src/bootstrap/utils.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (dc) {
+    var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+    var navigationName = _constants2.default.navigationName,
+        tabSelector = _constants2.default.tabSelector;
+
+    var classId = config.classNavigation;
+    var type = navigationName;
+
+    dc.addType(type, {
+
+        model: defaultModel.extend({
+            defaults: _extends({}, defaultModel.prototype.defaults, {
+                name: 'Tabs Navigation',
+                copyable: 0,
+                draggable: true,
+                droppable: tabSelector,
+
+                traits: [{
+                    type: 'class_select',
+                    options: [{ value: 'nav-tabs', name: 'Tabs' }, { value: 'nav-pills', name: 'Pills' }],
+                    label: 'Tipo'
+                }, {
+                    type: 'class_select',
+                    options: [{ value: '', name: 'Left' }, { value: 'nav-fill', name: 'Fill' }, { value: 'nav-justified', name: 'Justify' }],
+                    label: 'Diseño'
+                }]
+            }),
+
+            init: function init() {
+                this.get('classes').pluck('name').indexOf(classId) < 0 && this.addClass(classId);
+            }
+        }, {
+            isComponent: function isComponent(el) {
+                if ((0, _utils.elHasClass)(el, classId)) return { type: type };
+            }
+        }),
+
+        view: defaultView.extend({
+            init: function init() {
+                var props = ['type', 'layout'];
+                var reactTo = props.map(function (prop) {
+                    return 'change:' + prop;
+                }).join(' ');
+                this.listenTo(this.model, reactTo, this.render);
+                var comps = this.model.components();
+
+                // Add a basic template if it's not yet initialized
+                if (!comps.length) {
+                    comps.add('\n                        <ul class="nav nav-tabs" role="tablist">\n                          <li class="nav-item">\n                            <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Tab 1</a>\n                          </li>\n                          <li class="nav-item">\n                            <a class="nav-link" id="profile-tab" data-toggle="tab" href="#profile" role="tab" aria-controls="profile" aria-selected="false">Tab 2</a>\n                          </li>\n                          <li class="nav-item">\n                            <a class="nav-link" id="contact-tab" data-toggle="tab" href="#contact" role="tab" aria-controls="contact" aria-selected="false">Tab 3</a>\n                          </li>\n                        </ul>\n                    ');
+                }
+            }
+        })
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/tabs/TabsPanes.js":
+/*!****************************************************!*\
+  !*** ./src/bootstrap/components/tabs/TabsPanes.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _constants = __webpack_require__(/*! ./constants */ "./src/bootstrap/components/tabs/constants.js");
+
+var _constants2 = _interopRequireDefault(_constants);
+
+var _utils = __webpack_require__(/*! ../../utils */ "./src/bootstrap/utils.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (dc) {
+    var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    var defaultType = dc.getType('default');
+    var defaultModel = defaultType.model;
+    var defaultView = defaultType.view;
+    var tabPanesName = _constants2.default.tabPanesName,
+        tabPaneSelector = _constants2.default.tabPaneSelector;
+
+    var classId = config.classTabPanes;
+    var type = tabPanesName;
+
+    dc.addType(type, {
+
+        model: defaultModel.extend({
+            defaults: _extends({}, defaultModel.prototype.defaults, {
+                name: 'Tabs Panes',
+                copyable: 0,
+                draggable: true,
+                droppable: tabPaneSelector
+            }),
+
+            init: function init() {
+                this.get('classes').pluck('name').indexOf(classId) < 0 && this.addClass(classId);
+            }
+        }, {
+            isComponent: function isComponent(el) {
+                if ((0, _utils.elHasClass)(el, classId)) return { type: type };
+            }
+        }),
+
+        view: defaultView.extend({
+            init: function init() {
+                var comps = this.model.components();
+
+                // Add a basic template if it's not yet initialized
+                if (!comps.length) {
+                    comps.add('\n                        <div class="tab-content" id="myTabContent">\n                          <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">Tab pane 1</div>\n                          <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">Tab pane 2</div>\n                          <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">Tab pane 3</div>\n                        </div>\n                    ');
+                }
+            }
+        })
+    });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/components/tabs/constants.js":
+/*!****************************************************!*\
+  !*** ./src/bootstrap/components/tabs/constants.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var prefix = 'tabs-';
+var containerName = prefix + 'container';
+var navigationName = prefix + 'navigation';
+var tabPanesName = prefix + 'panes';
+var tabName = prefix + 'tab';
+var tabPaneName = prefix + 'tab-pane';
+
+exports.default = {
+  navigationName: navigationName,
+  tabPanesName: tabPanesName,
+  tabName: tabName,
+  tabPaneName: tabPaneName,
+
+  // Selectors
+  navigationSelector: '[data-gjs-type="' + navigationName + '"]',
+  tabPanesSelector: '[data-gjs-type="' + tabPanesName + '"]',
+  tabSelector: '[data-gjs-type="' + tabName + '"]',
+  tabPaneSelector: '[data-gjs-type="' + tabPaneName + '"]',
+
+  // IDs
+  containerId: 'data-' + containerName,
+  navigationId: 'data-' + navigationName,
+  tabPanesId: 'data-' + tabPanesName,
+  tabId: 'data-' + tabName,
+  tabPaneId: 'data-' + tabPaneName
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/devices.js":
+/*!**********************************!*\
+  !*** ./src/bootstrap/devices.js ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (editor) {
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  var c = config;
+  var deviceManager = editor.DeviceManager;
+  if (c.gridDevices) {
+    deviceManager.add('Extra Small', '575px');
+    deviceManager.add('Small', '767px');
+    deviceManager.add('Medium', '991px');
+    deviceManager.add('Large', '1199px');
+    deviceManager.add('Extra Large', '100%');
+
+    if (c.gridDevicesPanel) {
+      var panels = editor.Panels;
+      var commands = editor.Commands;
+      var panelDevices = panels.addPanel({ id: 'devices-buttons' });
+      var deviceBtns = panelDevices.get('buttons');
+      deviceBtns.add([{
+        id: 'deviceXl',
+        command: 'set-device-xl',
+        className: 'fa fa-desktop',
+        text: 'XL',
+        attributes: { 'title': 'Extra Large' },
+        active: 1
+      }, {
+        id: 'deviceLg',
+        command: 'set-device-lg',
+        className: 'fa fa-desktop',
+        attributes: { 'title': 'Large' }
+      }, {
+        id: 'deviceMd',
+        command: 'set-device-md',
+        className: 'fa fa-tablet',
+        attributes: { 'title': 'Medium' }
+      }, {
+        id: 'deviceSm',
+        command: 'set-device-sm',
+        className: 'fa fa-mobile',
+        attributes: { 'title': 'Small' }
+      }, {
+        id: 'deviceXs',
+        command: 'set-device-xs',
+        className: 'fa fa-mobile',
+        attributes: { 'title': 'Extra Small' }
+      }]);
+
+      commands.add('set-device-xs', {
+        run: function run(editor) {
+          editor.setDevice('Extra Small');
+        }
+      });
+      commands.add('set-device-sm', {
+        run: function run(editor) {
+          editor.setDevice('Small');
+        }
+      });
+      commands.add('set-device-md', {
+        run: function run(editor) {
+          editor.setDevice('Medium');
+        }
+      });
+      commands.add('set-device-lg', {
+        run: function run(editor) {
+          editor.setDevice('Large');
+        }
+      });
+      commands.add('set-device-xl', {
+        run: function run(editor) {
+          editor.setDevice('Extra Large');
+        }
+      });
+    }
+  }
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/index.js":
+/*!********************************!*\
+  !*** ./src/bootstrap/index.js ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.bSettings = undefined;
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _commands = __webpack_require__(/*! ./commands */ "./src/bootstrap/commands.js");
+
+var _commands2 = _interopRequireDefault(_commands);
+
+var _traits = __webpack_require__(/*! ./traits */ "./src/bootstrap/traits.js");
+
+var _traits2 = _interopRequireDefault(_traits);
+
+var _components = __webpack_require__(/*! ./components */ "./src/bootstrap/components.js");
+
+var _components2 = _interopRequireDefault(_components);
+
+var _blocks = __webpack_require__(/*! ./blocks */ "./src/bootstrap/blocks.js");
+
+var _blocks2 = _interopRequireDefault(_blocks);
+
+var _devices = __webpack_require__(/*! ./devices */ "./src/bootstrap/devices.js");
+
+var _devices2 = _interopRequireDefault(_devices);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var bSettings = exports.bSettings = function bSettings(editor) {
+  var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  window.editor = editor;
+
+  var opts_blocks = opts.blocks || {};
+  var opts_labels = opts.labels || {};
+  var opts_categories = opts.blockCategories || {};
+  delete opts['blocks'];
+  delete opts['labels'];
+  delete opts['blockCategories'];
+
+  var default_blocks = {
+    default: true,
+    text: true,
+    link: true,
+    image: true,
+    // LAYOUT
+    container: true,
+    row: true,
+    column: true,
+    column_break: true,
+    media_object: true,
+    // COMPONENTS
+    alert: true,
+    tabs: true,
+    badge: true,
+    button: true,
+    button_group: true,
+    button_toolbar: true,
+    card: true,
+    card_container: true,
+    collapse: true,
+    dropdown: true,
+    // TYPOGRAPHY
+    header: true,
+    paragraph: true,
+    // BASIC
+    list: true,
+    // FORMS
+    form: true,
+    input: true,
+    form_group_input: true,
+    input_group: true,
+    textarea: true,
+    select: true,
+    label: true,
+    checkbox: true,
+    radio: true
+  };
+
+  var default_labels = {
+    // LAYOUT
+    container: 'Contenedor',
+    row: 'Fila',
+    column: 'Columna',
+    column_break: 'Cierre de columna',
+    media_object: 'Objeto multimedia',
+    // COMPONENTS
+    button: 'Botón',
+    card: 'Carta',
+    card_container: 'Contenedor de cartas',
+    // TYPOGRAPHY
+    text: 'Texto',
+    header: 'Encabezado',
+    paragraph: 'Párrafo',
+    // BASIC
+    image: 'Imagen',
+    link: 'Link',
+    list: 'Lista',
+    // FORMS
+    type_button: 'Botón'
+  };
+
+  var default_categories = {
+    layout: true,
+    components: true,
+    typography: true,
+    basic: true,
+    forms: true
+  };
+
+  var options = _extends({
+    blocks: Object.assign(default_blocks, opts_blocks),
+    labels: Object.assign(default_labels, opts_labels),
+    blockCategories: Object.assign(default_categories, opts_categories),
+    optionsStringSeparator: '::',
+    gridDevices: true,
+    gridDevicesPanel: false,
+    classNavigation: 'nav',
+    classTabPanes: 'tab-content',
+    classTabPane: 'tab-pane',
+    classTab: 'nav-item'
+  }, opts);
+
+  editor.addComponents('\n    <style>\n\n      /* Estilos generales */\n\n       .container,  .container-fluid,\n       .tab-pane,\n       .row,\n       .col,  [class^="col-"] {\n        min-height: 1.5rem !important;\n      }\n       .w-100 {\n        min-height: .25rem !important;\n        background-color: rgba(0,0,0,0.1);\n      }\n       img {\n        min-width: 25px;\n        min-height: 25px;\n        background-color: rgba(0,0,0,0.5);\n      }\n\n      /* Components */\n      \n       .btn-group,\n       .btn-toolbar {\n        padding-right: 1.5rem !important;\n        min-height: 1.5rem !important;\n      }\n       .card,\n       .card-group,  .card-deck,  .card-columns {\n        min-height: 1.5rem !important;\n      }\n       .collapse {\n        display: block !important;\n        min-height: 1.5rem !important;\n      }\n       .dropdown {\n        display: block !important;\n        min-height: 1.5rem !important;\n      }\n       .dropdown-menu {\n        min-height: 1.5rem !important;\n        display: block !important;\n      }\n\n      .row, .container {\n                min-height: 75px !important;\n      }\n      img {\n        max-width: 100%\n      }\n\n    </style>\n  ');
+
+  // Add components
+  (0, _commands2.default)(editor, options);
+  (0, _traits2.default)(editor, options);
+  (0, _components2.default)(editor, options);
+  (0, _blocks2.default)(editor, options);
+  (0, _devices2.default)(editor, options);
+
+  // TODO Remove
+  //editor.on('load', () => editor.addComponents(`<div style="margin:0 100px; padding:25px;">Content loaded from the plugin</div>`))
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/traits.js":
+/*!*********************************!*\
+  !*** ./src/bootstrap/traits.js ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+//import _s from 'underscore.string';
+exports.default = function (editor) {
+  var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+
+  var tm = editor.TraitManager;
+
+  // Select trait that maps a class list to the select options.
+  // The default select option is set if the input has a class, and class list is modified when select value changes.
+  tm.addType('class_select', {
+    events: {
+      'change': 'onChange' // trigger parent onChange method on input change
+    },
+    getInputEl: function getInputEl() {
+      if (!this.inputEl) {
+        var md = this.model;
+        var opts = md.get('options') || [];
+        var input = document.createElement('select');
+        var target = this.target;
+        var target_view_el = this.target.view.el;
+        for (var i = 0; i < opts.length; i++) {
+          var name = opts[i].name;
+          var value = opts[i].value;
+          if (value == '') {
+            value = 'GJS_NO_CLASS';
+          } // 'GJS_NO_CLASS' represents no class--empty string does not trigger value change
+          var option = document.createElement('option');
+          option.text = name;
+          option.value = value;
+          var value_a = value.split(' ');
+          //if(target_view_el.classList.contains(value)) {
+          if (_underscore2.default.intersection(target_view_el.classList, value_a).length == value_a.length) {
+            option.setAttribute('selected', 'selected');
+          }
+          input.append(option);
+        }
+        this.inputEl = input;
+      }
+      return this.inputEl;
+    },
+
+    onValueChange: function onValueChange() {
+      var classes = this.model.get('options').map(function (opt) {
+        return opt.value;
+      });
+      for (var i = 0; i < classes.length; i++) {
+        if (classes[i].length > 0) {
+          var classes_i_a = classes[i].split(' ');
+          for (var j = 0; j < classes_i_a.length; j++) {
+            if (classes_i_a[j].length > 0) {
+              this.target.removeClass(classes_i_a[j]);
+            }
+          }
+        }
+      }
+      var value = this.model.get('value');
+      if (value.length > 0 && value != 'GJS_NO_CLASS') {
+        var value_a = value.split(' ');
+        for (var _i = 0; _i < value_a.length; _i++) {
+          this.target.addClass(value_a[_i]);
+        }
+      }
+      this.target.em.trigger('change:selectedComponent');
+    }
+  });
+};
+
+/***/ }),
+
+/***/ "./src/bootstrap/utils.js":
+/*!********************************!*\
+  !*** ./src/bootstrap/utils.js ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var elHasClass = function elHasClass(el, toFind) {
+  var cls = el.className;
+  cls = cls && cls.toString();
+  if (cls && cls.split(' ').indexOf(toFind) >= 0) return 1;
+};
+
+exports.elHasClass = elHasClass;
+
+/***/ }),
+
 /***/ "./src/canvas/config/config.js":
 /*!*************************************!*\
   !*** ./src/canvas/config/config.js ***!
@@ -25380,7 +30939,7 @@ module.exports = _backbone2.default.View.extend({
    * @return {Boolean}
    */
   isElInViewport: function isElInViewport(el) {
-    var rect = (0, _mixins.getElement)(el).getBoundingClientRect();
+    var rect = (0, _mixins.getElRect)((0, _mixins.getElement)(el));
     var frameRect = this.getFrameOffset();
     var rTop = rect.top;
     var rLeft = rect.left;
@@ -25480,6 +31039,11 @@ module.exports = _backbone2.default.View.extend({
       this.frame.el.contentWindow.onscroll = this.onFrameScroll;
       this.frame.udpateOffset();
 
+      // Avoid the default link behaviour in the canvas
+      body.on('click', function (ev) {
+        return ev && ev.target.tagName == 'A' && ev.preventDefault();
+      });
+
       // When the iframe is focused the event dispatcher is not the same so
       // I need to delegate all events to the parent document
       var doc = document;
@@ -25526,7 +31090,7 @@ module.exports = _backbone2.default.View.extend({
    * @return {Object}
    */
   offset: function offset(el) {
-    var rect = el.getBoundingClientRect();
+    var rect = (0, _mixins.getElRect)(el);
     var docBody = el.ownerDocument.body;
     return {
       top: rect.top + docBody.scrollTop,
@@ -25605,6 +31169,7 @@ module.exports = _backbone2.default.View.extend({
   getElementOffsets: function getElementOffsets(el) {
     var _this2 = this;
 
+    if (!el || (0, _mixins.isTextNode)(el)) return {};
     var result = {};
     var styles = window.getComputedStyle(el);
     ['marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'].forEach(function (offset) {
@@ -25641,13 +31206,14 @@ module.exports = _backbone2.default.View.extend({
    * @private
    */
   updateScript: function updateScript(view) {
+    var model = view.model;
+    var id = model.getId();
+
     if (!view.scriptContainer) {
-      view.scriptContainer = $('<div>');
+      view.scriptContainer = $('<div id="' + id + '">');
       this.getJsContainer().appendChild(view.scriptContainer.get(0));
     }
 
-    var model = view.model;
-    var id = model.getId();
     view.el.id = id;
     view.scriptContainer.html('');
     // In editor, I make use of setTimeout as during the append process of elements
@@ -26583,36 +32149,18 @@ module.exports = _backbone2.default.View.extend({
 "use strict";
 
 
-module.exports = {
-  ESCAPE_KEY: 27,
-
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = {
   stylePrefix: 'com-',
 
-  defaults: [],
+  // Default array of commands
+  defaults: [window['grapesjs-code-editor'].codeCommand],
 
   // If true, stateful commands (with `run` and `stop` methods) can't be runned multiple times.
   // So, if the command is already active, running it again will not execute the `run` method
-  strict: 1,
-
-  // Editor model
-  // @deprecated
-  em: null,
-
-  // If true center new first-level components
-  // @deprecated
-  firstCentered: true,
-
-  // If true the new component will created with 'height', else 'min-height'
-  // @deprecated
-  newFixedH: false,
-
-  // Minimum height (in px) of new component
-  // @deprecated
-  minComponentH: 50,
-
-  // Minimum width (in px) of component on creation
-  // @deprecated
-  minComponentW: 50
+  strict: 1
 };
 
 /***/ }),
@@ -26627,48 +32175,54 @@ module.exports = {
 "use strict";
 
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; /**
+                                                                                                                                                                                                                                                                   * You can customize the initial state of the module from the editor initialization, by passing the following [Configuration Object](https://github.com/artf/grapesjs/blob/master/src/commands/config/config.js)
+                                                                                                                                                                                                                                                                   * ```js
+                                                                                                                                                                                                                                                                   * const editor = grapesjs.init({
+                                                                                                                                                                                                                                                                   *  commands: {
+                                                                                                                                                                                                                                                                   *    // options
+                                                                                                                                                                                                                                                                   *  }
+                                                                                                                                                                                                                                                                   * })
+                                                                                                                                                                                                                                                                   * ```
+                                                                                                                                                                                                                                                                   *
+                                                                                                                                                                                                                                                                   * Once the editor is instantiated you can use its API. Before using these methods you should get the module from the instance
+                                                                                                                                                                                                                                                                   *
+                                                                                                                                                                                                                                                                   * ```js
+                                                                                                                                                                                                                                                                   * const commands = editor.Commands;
+                                                                                                                                                                                                                                                                   * ```
+                                                                                                                                                                                                                                                                   *
+                                                                                                                                                                                                                                                                   * * [add](#add)
+                                                                                                                                                                                                                                                                   * * [get](#get)
+                                                                                                                                                                                                                                                                   * * [getAll](#getall)
+                                                                                                                                                                                                                                                                   * * [extend](#extend)
+                                                                                                                                                                                                                                                                   * * [has](#has)
+                                                                                                                                                                                                                                                                   * * [run](#run)
+                                                                                                                                                                                                                                                                   * * [stop](#stop)
+                                                                                                                                                                                                                                                                   * * [isActive](#isactive)
+                                                                                                                                                                                                                                                                   * * [getActive](#getactive)
+                                                                                                                                                                                                                                                                   *
+                                                                                                                                                                                                                                                                   * @module Commands
+                                                                                                                                                                                                                                                                   */
+
 var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
 
 var _CommandAbstract = __webpack_require__(/*! ./view/CommandAbstract */ "./src/commands/view/CommandAbstract.js");
 
 var _CommandAbstract2 = _interopRequireDefault(_CommandAbstract);
 
+var _config = __webpack_require__(/*! ./config/config */ "./src/commands/config/config.js");
+
+var _config2 = _interopRequireDefault(_config);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } } /**
-                                                                                                                                                                                                     * You can customize the initial state of the module from the editor initialization, by passing the following [Configuration Object](https://github.com/artf/grapesjs/blob/master/src/commands/config/config.js)
-                                                                                                                                                                                                     * ```js
-                                                                                                                                                                                                     * const editor = grapesjs.init({
-                                                                                                                                                                                                     *  commands: {
-                                                                                                                                                                                                     *    // options
-                                                                                                                                                                                                     *  }
-                                                                                                                                                                                                     * })
-                                                                                                                                                                                                     * ```
-                                                                                                                                                                                                     *
-                                                                                                                                                                                                     * Once the editor is instantiated you can use its API. Before using these methods you should get the module from the instance
-                                                                                                                                                                                                     *
-                                                                                                                                                                                                     * ```js
-                                                                                                                                                                                                     * const commands = editor.Commands;
-                                                                                                                                                                                                     * ```
-                                                                                                                                                                                                     *
-                                                                                                                                                                                                     * * [add](#add)
-                                                                                                                                                                                                     * * [get](#get)
-                                                                                                                                                                                                     * * [getAll](#getall)
-                                                                                                                                                                                                     * * [has](#has)
-                                                                                                                                                                                                     * * [run](#run)
-                                                                                                                                                                                                     * * [stop](#stop)
-                                                                                                                                                                                                     * * [isActive](#isactive)
-                                                                                                                                                                                                     * * [getActive](#getactive)
-                                                                                                                                                                                                     *
-                                                                                                                                                                                                     * @module Commands
-                                                                                                                                                                                                     */
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 module.exports = function () {
   var em = void 0;
-  var c = {},
-      commands = {},
-      defaultCommands = {},
-      defaults = __webpack_require__(/*! ./config/config */ "./src/commands/config/config.js");
+  var c = {};
+  var commands = {};
+  var defaultCommands = {};
   var active = {};
 
   // Need it here as it would be used below
@@ -26696,11 +32250,10 @@ module.exports = function () {
      * @param {Object} config Configurations
      * @private
      */
-    init: function init(config) {
-      c = config || {};
-      for (var name in defaults) {
-        if (!(name in c)) c[name] = defaults[name];
-      }
+    init: function init() {
+      var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+      c = _extends({}, _config2.default, config);
       em = c.em;
       var ppfx = c.pStylePrefix;
       if (ppfx) c.stylePrefix = ppfx + c.stylePrefix;
@@ -26710,24 +32263,6 @@ module.exports = function () {
         var obj = c.defaults[k];
         if (obj.id) this.add(obj.id, obj);
       }
-
-      var ViewCode = __webpack_require__(/*! ./view/ExportTemplate */ "./src/commands/view/ExportTemplate.js");
-      defaultCommands['select-comp'] = __webpack_require__(/*! ./view/SelectComponent */ "./src/commands/view/SelectComponent.js");
-      defaultCommands['create-comp'] = __webpack_require__(/*! ./view/CreateComponent */ "./src/commands/view/CreateComponent.js");
-      defaultCommands['delete-comp'] = __webpack_require__(/*! ./view/DeleteComponent */ "./src/commands/view/DeleteComponent.js");
-      defaultCommands['move-comp'] = __webpack_require__(/*! ./view/MoveComponent */ "./src/commands/view/MoveComponent.js");
-      defaultCommands['export-template'] = ViewCode;
-      defaultCommands['sw-visibility'] = __webpack_require__(/*! ./view/SwitchVisibility */ "./src/commands/view/SwitchVisibility.js");
-      defaultCommands['open-layers'] = __webpack_require__(/*! ./view/OpenLayers */ "./src/commands/view/OpenLayers.js");
-      defaultCommands['open-sm'] = __webpack_require__(/*! ./view/OpenStyleManager */ "./src/commands/view/OpenStyleManager.js");
-      defaultCommands['open-tm'] = __webpack_require__(/*! ./view/OpenTraitManager */ "./src/commands/view/OpenTraitManager.js");
-      defaultCommands['open-blocks'] = __webpack_require__(/*! ./view/OpenBlocks */ "./src/commands/view/OpenBlocks.js");
-      defaultCommands['open-assets'] = __webpack_require__(/*! ./view/OpenAssets */ "./src/commands/view/OpenAssets.js");
-      defaultCommands['show-offset'] = __webpack_require__(/*! ./view/ShowOffset */ "./src/commands/view/ShowOffset.js");
-      defaultCommands['select-parent'] = __webpack_require__(/*! ./view/SelectParent */ "./src/commands/view/SelectParent.js");
-      defaultCommands.fullscreen = __webpack_require__(/*! ./view/Fullscreen */ "./src/commands/view/Fullscreen.js");
-      defaultCommands.preview = __webpack_require__(/*! ./view/Preview */ "./src/commands/view/Preview.js");
-      defaultCommands.resize = __webpack_require__(/*! ./view/Resize */ "./src/commands/view/Resize.js");
 
       defaultCommands['tlb-delete'] = {
         run: function run(ed) {
@@ -26813,8 +32348,12 @@ module.exports = function () {
       defaultCommands['core:redo'] = function (e) {
         return e.UndoManager.redo();
       };
-      [['copy', 'CopyComponent'], ['paste', 'PasteComponent'], ['canvas-move', 'CanvasMove'], ['canvas-clear', 'CanvasClear'], ['component-next', 'ComponentNext'], ['component-prev', 'ComponentPrev'], ['component-enter', 'ComponentEnter'], ['component-exit', 'ComponentExit'], ['component-delete', 'ComponentDelete'], ['component-style-clear', 'ComponentStyleClear'], ['component-drag', 'ComponentDrag']].forEach(function (item) {
-        return defaultCommands['core:' + item[0]] = __webpack_require__("./src/commands/view sync recursive ^\\.\\/.*$")("./" + item[1]);
+      [['preview', 'Preview', 'preview'], ['resize', 'Resize', 'resize'], ['fullscreen', 'Fullscreen', 'fullscreen'], ['copy', 'CopyComponent'], ['paste', 'PasteComponent'], ['canvas-move', 'CanvasMove'], ['canvas-clear', 'CanvasClear'], ['open-code', 'ExportTemplate', 'export-template'], ['open-layers', 'OpenLayers', 'open-layers'], ['open-styles', 'OpenStyleManager', 'open-sm'], ['open-traits', 'OpenTraitManager', 'open-tm'], ['open-blocks', 'OpenBlocks', 'open-blocks'], ['open-assets', 'OpenAssets', 'open-assets'], ['component-select', 'SelectComponent', 'select-comp'], ['component-outline', 'SwitchVisibility', 'sw-visibility'], ['component-offset', 'ShowOffset', 'show-offset'], ['component-move', 'MoveComponent', 'move-comp'], ['component-next', 'ComponentNext'], ['component-prev', 'ComponentPrev'], ['component-enter', 'ComponentEnter'], ['component-exit', 'ComponentExit', 'select-parent'], ['component-delete', 'ComponentDelete'], ['component-style-clear', 'ComponentStyleClear'], ['component-drag', 'ComponentDrag']].forEach(function (item) {
+        var oldCmd = item[2];
+        var cmd = __webpack_require__("./src/commands/view sync recursive ^\\.\\/.*$")("./" + item[1]);
+        var cmdName = 'core:' + item[0];
+        defaultCommands[cmdName] = cmd;
+        if (oldCmd) defaultCommands[oldCmd] = cmd;
       });
 
       if (c.em) c.model = c.em.get('Canvas');
@@ -26864,6 +32403,27 @@ module.exports = function () {
       }
 
       return el;
+    },
+
+
+    /**
+     * Extend the command. The command to extend should be defined as an object
+     * @param	{string}	id Command's ID
+     * @param {Object} Object with the new command functions
+     * @returns {this}
+     * @example
+     * commands.extend('old-command', {
+     *  someInnerFunction() {
+     *  // ...
+     *  }
+     * });
+     * */
+    extend: function extend(id) {
+      var cmd = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+      var command = this.get(id);
+      command && this.add(id, _extends({}, command.constructor.prototype, cmd));
+      return this;
     },
 
 
@@ -26979,10 +32539,10 @@ module.exports = function () {
         var _editor = em.get('Editor');
 
         if (!this.isActive(id) || options.force || !c.strict) {
-          if (id && command.stop && !command.noStop) {
+          result = command.callRun(_editor, options);
+          if (id && command.stop && !command.noStop && !options.abort) {
             active[id] = result;
           }
-          result = command.callRun(_editor, options);
         }
       }
 
@@ -27062,8 +32622,6 @@ var map = {
 	"./ComponentStyleClear.js": "./src/commands/view/ComponentStyleClear.js",
 	"./CopyComponent": "./src/commands/view/CopyComponent.js",
 	"./CopyComponent.js": "./src/commands/view/CopyComponent.js",
-	"./CreateComponent": "./src/commands/view/CreateComponent.js",
-	"./CreateComponent.js": "./src/commands/view/CreateComponent.js",
 	"./DeleteComponent": "./src/commands/view/DeleteComponent.js",
 	"./DeleteComponent.js": "./src/commands/view/DeleteComponent.js",
 	"./ExportTemplate": "./src/commands/view/ExportTemplate.js",
@@ -27090,8 +32648,6 @@ var map = {
 	"./Resize.js": "./src/commands/view/Resize.js",
 	"./SelectComponent": "./src/commands/view/SelectComponent.js",
 	"./SelectComponent.js": "./src/commands/view/SelectComponent.js",
-	"./SelectParent": "./src/commands/view/SelectParent.js",
-	"./SelectParent.js": "./src/commands/view/SelectParent.js",
 	"./SelectPosition": "./src/commands/view/SelectPosition.js",
 	"./SelectPosition.js": "./src/commands/view/SelectPosition.js",
 	"./ShowOffset": "./src/commands/view/ShowOffset.js",
@@ -27402,6 +32958,14 @@ exports.default = _backbone2.default.View.extend({
     editor.trigger('stop:' + id, result, options);
     editor.trigger('stop', id, result, options);
     return result;
+  },
+
+
+  /**
+   * Stop current command
+   */
+  stopCommand: function stopCommand() {
+    this.em.get('Commands').stop(this.id);
   },
 
 
@@ -28001,12 +33565,20 @@ module.exports = {
 
 
 module.exports = {
-  run: function run(ed) {
-    if (!ed.Canvas.hasFocus()) return;
+  run: function run(ed, snd) {
+    var opts = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    if (!ed.Canvas.hasFocus() && !opts.force) return;
     var toSelect = [];
 
     ed.getSelectedAll().forEach(function (component) {
       var next = component.parent();
+
+      // Recurse through the parent() chain until a selectable parent is found
+      while (next && !next.get('selectable')) {
+        next = next.parent();
+      }
+
       next && toSelect.push(next);
     });
 
@@ -28137,261 +33709,6 @@ module.exports = {
     }
   }
 };
-
-/***/ }),
-
-/***/ "./src/commands/view/CreateComponent.js":
-/*!**********************************************!*\
-  !*** ./src/commands/view/CreateComponent.js ***!
-  \**********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
-
-var _underscore2 = _interopRequireDefault(_underscore);
-
-var _backbone = __webpack_require__(/*! backbone */ "./node_modules/backbone/backbone.js");
-
-var _backbone2 = _interopRequireDefault(_backbone);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var SelectPosition = __webpack_require__(/*! ./SelectPosition */ "./src/commands/view/SelectPosition.js");
-var $ = _backbone2.default.$;
-
-module.exports = _underscore2.default.extend({}, SelectPosition, {
-  init: function init(opt) {
-    _underscore2.default.bindAll(this, 'startDraw', 'draw', 'endDraw', 'rollback');
-    this.config = opt || {};
-    this.hType = this.config.newFixedH ? 'height' : 'min-height';
-    this.allowDraw = 1;
-  },
-
-
-  /**
-   * Start with enabling to select position and listening to start drawing
-   * @private
-   * */
-  enable: function enable() {
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    SelectPosition.enable.apply(this, args);
-    this.$wr.css('cursor', 'crosshair');
-    if (this.allowDraw) this.$wr.on('mousedown', this.startDraw);
-    this.ghost = this.canvas.getGhostEl();
-  },
-
-
-  /**
-   * Start drawing component
-   * @param   {Object} e  Event
-   * @private
-   * */
-  startDraw: function startDraw(e) {
-    e.preventDefault();
-    this.stopSelectPosition();
-    this.ghost.style.display = 'block';
-    this.frameOff = this.getOffsetDim();
-    this.startPos = {
-      top: e.pageY + this.frameOff.top,
-      left: e.pageX + this.frameOff.left
-    };
-    this.isDragged = false;
-    this.tempComponent = { style: {} };
-    this.beforeDraw(this.tempComponent);
-    this.updateSize(this.startPos.top, this.startPos.left, 0, 0);
-    this.toggleEvents(1);
-  },
-
-
-  /**
-   * Enable/Disable events
-   * @param {Boolean} enable
-   */
-  toggleEvents: function toggleEvents(enable) {
-    var method = enable ? 'on' : 'off';
-    this.$wr[method]('mousemove', this.draw);
-    this.$wr[method]('mouseup', this.endDraw);
-    this.$canvas[method]('mousemove', this.draw);
-    $(document)[method]('mouseup', this.endDraw);
-    $(document)[method]('keypress', this.rollback);
-  },
-
-
-  /**
-   * While drawing the component
-   * @param   {Object}  e  Event
-   * @private
-   * */
-  draw: function draw(e) {
-    this.isDragged = true;
-    this.updateComponentSize(e);
-  },
-
-
-  /**
-   * End drawing component
-   * @param   {Object}  e Event
-   * @private
-   * */
-  endDraw: function endDraw(e) {
-    this.toggleEvents();
-    var model = {};
-    // Only if the mouse was moved
-    if (this.isDragged) {
-      this.updateComponentSize(e);
-      this.setRequirements(this.tempComponent);
-      var lp = this.sorter.lastPos;
-      model = this.create(this.sorter.target, this.tempComponent, lp.index, lp.method);
-      this.sorter.prevTarget = null;
-    }
-    this.ghost.style.display = 'none';
-    this.startSelectPosition();
-    this.afterDraw(model);
-  },
-
-
-  /**
-   * Create new component inside the target
-   * @param  {Object} target Tha target collection
-   * @param {Object} component New component to create
-   * @param {number} index Index inside the collection, 0 if no children inside
-   * @param {string} method Before or after of the children
-   * @param {Object} opts Options
-   */
-  create: function create(target, component, index, method, opts) {
-    index = method === 'after' ? index + 1 : index;
-    var opt = opts || {};
-    var $trg = $(target);
-    var trgModel = $trg.data('model');
-    var trgCollection = $trg.data('collection');
-    var droppable = trgModel ? trgModel.get('droppable') : 1;
-    opt.at = index;
-    if (trgCollection && droppable) return trgCollection.add(component, opt);else console.warn('Invalid target position');
-  },
-
-
-  /**
-   * Check and set basic requirements for the component
-   * @param   {Object}  component  New component to be created
-   * @return   {Object}   Component updated
-   * @private
-   * */
-  setRequirements: function setRequirements(component) {
-    var c = this.config;
-    var compStl = component.style;
-    // Check min width
-    if (compStl.width.replace(/\D/g, '') < c.minComponentW) compStl.width = c.minComponentW + 'px';
-    // Check min height
-    if (compStl[this.hType].replace(/\D/g, '') < c.minComponentH) compStl[this.hType] = c.minComponentH + 'px';
-    // Set overflow in case of fixed height
-    if (c.newFixedH) compStl.overflow = 'auto';
-    if (!this.absoluteMode) {
-      delete compStl.left;
-      delete compStl.top;
-    } else compStl.position = 'absolute';
-    var lp = this.sorter.lastPos;
-
-    if (this.nearFloat(lp.index, lp.method, this.sorter.lastDims)) compStl.float = 'left';
-
-    if (this.config.firstCentered && this.getCanvasWrapper() == this.sorter.target) {
-      compStl.margin = '0 auto';
-    }
-
-    return component;
-  },
-
-
-  /**
-   * Update new component size while drawing
-   * @param   {Object}   e  Event
-   * @private
-   * */
-  updateComponentSize: function updateComponentSize(e) {
-    var y = e.pageY + this.frameOff.top;
-    var x = e.pageX + this.frameOff.left;
-    var start = this.startPos;
-    var top = start.top;
-    var left = start.left;
-    var height = y - top;
-    var width = x - left;
-    if (x < left) {
-      left = x;
-      width = start.left - x;
-    }
-    if (y < top) {
-      top = y;
-      height = start.top - y;
-    }
-    this.updateSize(top, left, width, height);
-  },
-
-
-  /**
-   * Update size
-   * @private
-   */
-  updateSize: function updateSize(top, left, width, height) {
-    var u = 'px';
-    var ghStl = this.ghost.style;
-    var compStl = this.tempComponent.style;
-    ghStl.top = compStl.top = top + u;
-    ghStl.left = compStl.left = left + u;
-    ghStl.width = compStl.width = width + u;
-    ghStl[this.hType] = compStl[this.hType] = height + u;
-  },
-
-
-  /**
-   * Used to bring the previous situation before event started
-   * @param   {Object}  e    Event
-   * @param   {Boolean}   forse  Indicates if rollback in anycase
-   * @private
-   * */
-  rollback: function rollback(e, force) {
-    var key = e.which || e.keyCode;
-    if (key == this.config.ESCAPE_KEY || force) {
-      this.isDragged = false;
-      this.endDraw();
-    }
-    return;
-  },
-
-
-  /**
-   * This event is triggered at the beginning of a draw operation
-   * @param   {Object}  component  Object component before creation
-   * @private
-   * */
-  beforeDraw: function beforeDraw(component) {
-    component.editable = false; //set this component editable
-  },
-
-
-  /**
-   * This event is triggered at the end of a draw operation
-   * @param   {Object}  model  Component model created
-   * @private
-   * */
-  afterDraw: function afterDraw(model) {},
-  run: function run(editor, sender, opts) {
-    this.editor = editor;
-    this.sender = sender;
-    this.$wr = this.$wrapper;
-    this.enable();
-  },
-  stop: function stop() {
-    this.stopSelectPosition();
-    this.$wrapper.css('cursor', '');
-    this.$wrapper.unbind();
-  }
-});
 
 /***/ }),
 
@@ -28814,7 +34131,7 @@ module.exports = _underscore2.default.extend({}, SelectPosition, SelectComponent
    * */
   rollback: function rollback(e, force) {
     var key = e.which || e.keyCode;
-    if (key == this.opt.ESCAPE_KEY || force) {
+    if (key == 27 || force) {
       this.sorter.moved = false;
       this.sorter.endMove();
     }
@@ -29728,7 +35045,7 @@ module.exports = {
     var pfx = config.stylePrefix || '';
     var attrName = 'data-' + pfx + 'handler';
     var resizeClass = pfx + 'resizing';
-    var model = !(0, _underscore.isElement)(elem) ? elem : em.getSelected();
+    var model = !(0, _underscore.isElement)(elem) && !(0, _mixins.isTextNode)(elem) ? elem : em.getSelected();
     var resizable = model.get('resizable');
     var el = (0, _underscore.isElement)(elem) ? elem : model.getEl();
     var options = {};
@@ -30065,32 +35382,6 @@ module.exports = {
 
 /***/ }),
 
-/***/ "./src/commands/view/SelectParent.js":
-/*!*******************************************!*\
-  !*** ./src/commands/view/SelectParent.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports = {
-  run: function run(editor) {
-    var sel = editor.getSelected();
-    var comp = sel && sel.parent();
-
-    // Recurse through the parent() chain until a selectable parent is found
-    while (comp && !comp.get('selectable')) {
-      comp = comp.parent();
-    }
-
-    comp && editor.select(comp);
-  }
-};
-
-/***/ }),
-
 /***/ "./src/commands/view/SelectPosition.js":
 /*!*********************************************!*\
   !*** ./src/commands/view/SelectPosition.js ***!
@@ -30225,157 +35516,159 @@ var _backbone = __webpack_require__(/*! backbone */ "./node_modules/backbone/bac
 
 var _backbone2 = _interopRequireDefault(_backbone);
 
+var _mixins = __webpack_require__(/*! utils/mixins */ "./src/utils/mixins.js");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var $ = _backbone2.default.$;
 
 module.exports = {
-  getOffsetMethod: function getOffsetMethod(state) {
-    var method = state || '';
-    return 'get' + method + 'OffsetViewerEl';
-  },
-  run: function run(editor, sender, opts) {
-    var opt = opts || {};
-    var state = opt.state || '';
-    var config = editor.getConfig();
-    var zoom = this.em.getZoomDecimal();
+    getOffsetMethod: function getOffsetMethod(state) {
+        var method = state || '';
+        return 'get' + method + 'OffsetViewerEl';
+    },
+    run: function run(editor, sender, opts) {
+        var opt = opts || {};
+        var state = opt.state || '';
+        var config = editor.getConfig();
+        var zoom = this.em.getZoomDecimal();
+        var el = opt.el || '';
 
-    if (!config.showOffsets || !config.showOffsetsSelected && state == 'Fixed') {
-      editor.stopCommand(this.id, opts);
-      return;
+        if (!config.showOffsets || (0, _mixins.isTextNode)(el) || !config.showOffsetsSelected && state == 'Fixed') {
+            editor.stopCommand(this.id, opts);
+            return;
+        }
+
+        var canvas = editor.Canvas;
+        var pos = opt.elPos || canvas.getElementPos(el);
+        var style = window.getComputedStyle(el);
+        var ppfx = this.ppfx;
+        var stateVar = state + 'State';
+        var method = this.getOffsetMethod(state);
+        var offsetViewer = canvas[method]();
+        offsetViewer.style.display = 'block';
+
+        var marginT = this['marginT' + state];
+        var marginB = this['marginB' + state];
+        var marginL = this['marginL' + state];
+        var marginR = this['marginR' + state];
+        var padT = this['padT' + state];
+        var padB = this['padB' + state];
+        var padL = this['padL' + state];
+        var padR = this['padR' + state];
+
+        if (!this[stateVar]) {
+            var stateLow = state.toLowerCase();
+            var marginName = stateLow + 'margin-v';
+            var paddingName = stateLow + 'padding-v';
+            var marginV = $('<div class="' + ppfx + 'marginName">').get(0);
+            var paddingV = $('<div class="' + ppfx + 'paddingName">').get(0);
+            var marginEls = ppfx + marginName + '-el';
+            var paddingEls = ppfx + paddingName + '-el';
+            var fullMargName = marginEls + ' ' + (ppfx + marginName);
+            var fullPadName = paddingEls + ' ' + (ppfx + paddingName);
+            marginT = $('<div class="' + fullMargName + '-top"></div>').get(0);
+            marginB = $('<div class="' + fullMargName + '-bottom"></div>').get(0);
+            marginL = $('<div class="' + fullMargName + '-left"></div>').get(0);
+            marginR = $('<div class="' + fullMargName + '-right"></div>').get(0);
+            padT = $('<div class="' + fullPadName + '-top"></div>').get(0);
+            padB = $('<div class="' + fullPadName + '-bottom"></div>').get(0);
+            padL = $('<div class="' + fullPadName + '-left"></div>').get(0);
+            padR = $('<div class="' + fullPadName + '-right"></div>').get(0);
+            this['marginT' + state] = marginT;
+            this['marginB' + state] = marginB;
+            this['marginL' + state] = marginL;
+            this['marginR' + state] = marginR;
+            this['padT' + state] = padT;
+            this['padB' + state] = padB;
+            this['padL' + state] = padL;
+            this['padR' + state] = padR;
+            marginV.appendChild(marginT);
+            marginV.appendChild(marginB);
+            marginV.appendChild(marginL);
+            marginV.appendChild(marginR);
+            paddingV.appendChild(padT);
+            paddingV.appendChild(padB);
+            paddingV.appendChild(padL);
+            paddingV.appendChild(padR);
+            offsetViewer.appendChild(marginV);
+            offsetViewer.appendChild(paddingV);
+            this[stateVar] = '1';
+        }
+
+        var unit = 'px';
+        var marginLeftSt = parseFloat(style.marginLeft.replace(unit, '')) * zoom;
+        var marginRightSt = parseFloat(style.marginRight.replace(unit, '')) * zoom;
+        var marginTopSt = parseFloat(style.marginTop.replace(unit, '')) * zoom;
+        var marginBottomSt = parseFloat(style.marginBottom.replace(unit, '')) * zoom;
+        var mtStyle = marginT.style;
+        var mbStyle = marginB.style;
+        var mlStyle = marginL.style;
+        var mrStyle = marginR.style;
+        var ptStyle = padT.style;
+        var pbStyle = padB.style;
+        var plStyle = padL.style;
+        var prStyle = padR.style;
+        var posLeft = parseFloat(pos.left);
+        var widthEl = parseFloat(style.width) * zoom + unit;
+
+        // Margin style
+        mtStyle.height = marginTopSt + unit;
+        mtStyle.width = widthEl;
+        mtStyle.top = pos.top - marginTopSt + unit;
+        mtStyle.left = posLeft + unit;
+
+        mbStyle.height = marginBottomSt + unit;
+        mbStyle.width = widthEl;
+        mbStyle.top = pos.top + pos.height + unit;
+        mbStyle.left = posLeft + unit;
+
+        var marginSideH = pos.height + marginTopSt + marginBottomSt + unit;
+        var marginSideT = pos.top - marginTopSt + unit;
+        mlStyle.height = marginSideH;
+        mlStyle.width = marginLeftSt + unit;
+        mlStyle.top = marginSideT;
+        mlStyle.left = posLeft - marginLeftSt + unit;
+
+        mrStyle.height = marginSideH;
+        mrStyle.width = marginRightSt + unit;
+        mrStyle.top = marginSideT;
+        mrStyle.left = posLeft + pos.width + unit;
+
+        // Padding style
+        var padTop = parseFloat(style.paddingTop) * zoom;
+        ptStyle.height = padTop + unit;
+        ptStyle.width = widthEl;
+        ptStyle.top = pos.top + unit;
+        ptStyle.left = posLeft + unit;
+
+        var padBot = parseFloat(style.paddingBottom) * zoom;
+        pbStyle.height = padBot + unit;
+        pbStyle.width = widthEl;
+        pbStyle.top = pos.top + pos.height - padBot + unit;
+        pbStyle.left = posLeft + unit;
+
+        var padSideH = pos.height - padBot - padTop + unit;
+        var padSideT = pos.top + padTop + unit;
+        plStyle.height = padSideH;
+        plStyle.width = parseFloat(style.paddingLeft) * zoom + unit;
+        plStyle.top = padSideT;
+        plStyle.left = pos.left + unit;
+
+        var padRight = parseFloat(style.paddingRight) * zoom;
+        prStyle.height = padSideH;
+        prStyle.width = padRight + unit;
+        prStyle.top = padSideT;
+        prStyle.left = pos.left + pos.width - padRight + unit;
+    },
+    stop: function stop(editor, sender, opts) {
+        var opt = opts || {};
+        var state = opt.state || '';
+        var method = this.getOffsetMethod(state);
+        var canvas = editor.Canvas;
+        var offsetViewer = canvas[method]();
+        offsetViewer.style.display = 'none';
     }
-
-    var canvas = editor.Canvas;
-    var el = opt.el || '';
-    var pos = opt.elPos || canvas.getElementPos(el);
-    var style = window.getComputedStyle(el);
-    var ppfx = this.ppfx;
-    var stateVar = state + 'State';
-    var method = this.getOffsetMethod(state);
-    var offsetViewer = canvas[method]();
-    offsetViewer.style.display = 'block';
-
-    var marginT = this['marginT' + state];
-    var marginB = this['marginB' + state];
-    var marginL = this['marginL' + state];
-    var marginR = this['marginR' + state];
-    var padT = this['padT' + state];
-    var padB = this['padB' + state];
-    var padL = this['padL' + state];
-    var padR = this['padR' + state];
-
-    if (!this[stateVar]) {
-      var stateLow = state.toLowerCase();
-      var marginName = stateLow + 'margin-v';
-      var paddingName = stateLow + 'padding-v';
-      var marginV = $('<div class="' + ppfx + 'marginName">').get(0);
-      var paddingV = $('<div class="' + ppfx + 'paddingName">').get(0);
-      var marginEls = ppfx + marginName + '-el';
-      var paddingEls = ppfx + paddingName + '-el';
-      var fullMargName = marginEls + ' ' + (ppfx + marginName);
-      var fullPadName = paddingEls + ' ' + (ppfx + paddingName);
-      marginT = $('<div class="' + fullMargName + '-top"></div>').get(0);
-      marginB = $('<div class="' + fullMargName + '-bottom"></div>').get(0);
-      marginL = $('<div class="' + fullMargName + '-left"></div>').get(0);
-      marginR = $('<div class="' + fullMargName + '-right"></div>').get(0);
-      padT = $('<div class="' + fullPadName + '-top"></div>').get(0);
-      padB = $('<div class="' + fullPadName + '-bottom"></div>').get(0);
-      padL = $('<div class="' + fullPadName + '-left"></div>').get(0);
-      padR = $('<div class="' + fullPadName + '-right"></div>').get(0);
-      this['marginT' + state] = marginT;
-      this['marginB' + state] = marginB;
-      this['marginL' + state] = marginL;
-      this['marginR' + state] = marginR;
-      this['padT' + state] = padT;
-      this['padB' + state] = padB;
-      this['padL' + state] = padL;
-      this['padR' + state] = padR;
-      marginV.appendChild(marginT);
-      marginV.appendChild(marginB);
-      marginV.appendChild(marginL);
-      marginV.appendChild(marginR);
-      paddingV.appendChild(padT);
-      paddingV.appendChild(padB);
-      paddingV.appendChild(padL);
-      paddingV.appendChild(padR);
-      offsetViewer.appendChild(marginV);
-      offsetViewer.appendChild(paddingV);
-      this[stateVar] = '1';
-    }
-
-    var unit = 'px';
-    var marginLeftSt = parseFloat(style.marginLeft.replace(unit, '')) * zoom;
-    var marginRightSt = parseFloat(style.marginRight.replace(unit, '')) * zoom;
-    var marginTopSt = parseFloat(style.marginTop.replace(unit, '')) * zoom;
-    var marginBottomSt = parseFloat(style.marginBottom.replace(unit, '')) * zoom;
-    var mtStyle = marginT.style;
-    var mbStyle = marginB.style;
-    var mlStyle = marginL.style;
-    var mrStyle = marginR.style;
-    var ptStyle = padT.style;
-    var pbStyle = padB.style;
-    var plStyle = padL.style;
-    var prStyle = padR.style;
-    var posLeft = parseFloat(pos.left);
-    var widthEl = parseFloat(style.width) * zoom + unit;
-
-    // Margin style
-    mtStyle.height = marginTopSt + unit;
-    mtStyle.width = widthEl;
-    mtStyle.top = pos.top - marginTopSt + unit;
-    mtStyle.left = posLeft + unit;
-
-    mbStyle.height = marginBottomSt + unit;
-    mbStyle.width = widthEl;
-    mbStyle.top = pos.top + pos.height + unit;
-    mbStyle.left = posLeft + unit;
-
-    var marginSideH = pos.height + marginTopSt + marginBottomSt + unit;
-    var marginSideT = pos.top - marginTopSt + unit;
-    mlStyle.height = marginSideH;
-    mlStyle.width = marginLeftSt + unit;
-    mlStyle.top = marginSideT;
-    mlStyle.left = posLeft - marginLeftSt + unit;
-
-    mrStyle.height = marginSideH;
-    mrStyle.width = marginRightSt + unit;
-    mrStyle.top = marginSideT;
-    mrStyle.left = posLeft + pos.width + unit;
-
-    // Padding style
-    var padTop = parseFloat(style.paddingTop) * zoom;
-    ptStyle.height = padTop + unit;
-    ptStyle.width = widthEl;
-    ptStyle.top = pos.top + unit;
-    ptStyle.left = posLeft + unit;
-
-    var padBot = parseFloat(style.paddingBottom) * zoom;
-    pbStyle.height = padBot + unit;
-    pbStyle.width = widthEl;
-    pbStyle.top = pos.top + pos.height - padBot + unit;
-    pbStyle.left = posLeft + unit;
-
-    var padSideH = pos.height - padBot - padTop + unit;
-    var padSideT = pos.top + padTop + unit;
-    plStyle.height = padSideH;
-    plStyle.width = parseFloat(style.paddingLeft) * zoom + unit;
-    plStyle.top = padSideT;
-    plStyle.left = pos.left + unit;
-
-    var padRight = parseFloat(style.paddingRight) * zoom;
-    prStyle.height = padSideH;
-    prStyle.width = padRight + unit;
-    prStyle.top = padSideT;
-    prStyle.left = pos.left + pos.width - padRight + unit;
-  },
-  stop: function stop(editor, sender, opts) {
-    var opt = opts || {};
-    var state = opt.state || '';
-    var method = this.getOffsetMethod(state);
-    var canvas = editor.Canvas;
-    var offsetViewer = canvas[method]();
-    offsetViewer.style.display = 'none';
-  }
 };
 
 /***/ }),
@@ -32771,6 +38064,29 @@ var Component = Backbone.Model.extend(_Styleable2.default).extend({
 
 
   /**
+   * Find all inner components by component id.
+   * The advantage of this method over `find` is that you can use it
+   * also before rendering the component
+   * @param {String} id Component id
+   * @returns {Array<Component>}
+   * @example
+   * const allImages = component.findType('image');
+   * console.log(allImages[0]) // prints the first found component
+   */
+  findType: function findType(id) {
+    var result = [];
+    var find = function find(components) {
+      return components.forEach(function (item) {
+        item.is(id) && result.push(item);
+        find(item.components());
+      });
+    };
+    find(this.components());
+    return result;
+  },
+
+
+  /**
    * Find the closest parent component by query string.
    * **ATTENTION**: this method works only with already rendered component
    * @param  {string} query Query string
@@ -33063,7 +38379,7 @@ var Component = Backbone.Model.extend(_Styleable2.default).extend({
     var components = this.get('components');
     var addChild = !this.opt.avoidChildren;
     this.set('components', comps);
-    addChild && comps.add(components);
+    addChild && comps.add((0, _underscore.isFunction)(components) ? components(this) : components);
     this.listenTo.apply(this, toListen);
     return this;
   },
@@ -33171,7 +38487,9 @@ var Component = Backbone.Model.extend(_Styleable2.default).extend({
       if (model.collection) {
         tb.push({
           attributes: { class: 'fa fa-arrow-up' },
-          command: 'select-parent'
+          command: function command(ed) {
+            return ed.runCommand('core:component-exit', { force: 1 });
+          }
         });
       }
       if (model.get('draggable')) {
@@ -33241,6 +38559,67 @@ var Component = Backbone.Model.extend(_Styleable2.default).extend({
     return this.get('traits').filter(function (trait) {
       return trait.get('id') === id || trait.get('name') === id;
     })[0];
+  },
+
+
+  /**
+   * Get the trait position index by id/name. Useful in case you want to
+   * replace some trait, at runtime, with something else.
+   * @param  {String} id The `id` or `name` of the trait
+   * @return {Number} Index position of the current trait
+   * @example
+   * const traitTitle = component.getTraitIndex('title');
+   * console.log(traitTitle); // 1
+   */
+  getTraitIndex: function getTraitIndex(id) {
+    var trait = this.getTrait(id);
+    return trait ? this.get('traits').indexOf(trait) : trait;
+  },
+
+
+  /**
+   * Remove trait/s by id/s.
+   * @param  {String|Array<String>} id The `id`/`name` of the trait (or an array)
+   * @return {Array} Array of removed traits
+   * @example
+   * component.removeTrait('title');
+   * component.removeTrait(['title', 'id']);
+   */
+  removeTrait: function removeTrait(id) {
+    var _this4 = this;
+
+    var em = this.em;
+
+    var ids = (0, _underscore.isArray)(id) ? id : [id];
+    var toRemove = ids.map(function (id) {
+      return _this4.getTrait(id);
+    });
+    var removed = this.get('traits').remove(toRemove);
+    em && em.trigger('component:toggled');
+    return removed;
+  },
+
+
+  /**
+   * Add trait/s by id/s.
+   * @param  {String|Object|Array<String|Object>} trait Trait to add (or an array of traits)
+   * @param  {Options} opts Options for the add
+   * @return {Array} Array of added traits
+   * @example
+   * component.addTrat('title', { at: 1 }); // Add title trait (at option is the position index)
+   * component.addTrat({
+   *  type: 'checkbox',
+   *  name: 'disabled',
+   * });
+   * component.addTrat(['title', {...}, ...]);
+   */
+  addTrait: function addTrait(trait) {
+    var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var em = this.em;
+
+    var added = this.get('traits').add(trait, opts);
+    em && em.trigger('component:toggled');
+    return added;
   },
 
 
@@ -33518,7 +38897,7 @@ var Component = Backbone.Model.extend(_Styleable2.default).extend({
    * @private
    */
   getScriptString: function getScriptString(script) {
-    var _this4 = this;
+    var _this5 = this;
 
     var scr = script || this.get('script');
 
@@ -33540,8 +38919,8 @@ var Component = Backbone.Model.extend(_Styleable2.default).extend({
     scr = scr.replace(reg, function (match, v) {
       // If at least one match is found I have to track this change for a
       // better optimization inside JS generator
-      _this4.scriptUpdated();
-      return _this4.attributes[v] || '';
+      _this5.scriptUpdated();
+      return _this5.attributes[v] || '';
     });
 
     return scr;
@@ -35407,7 +40786,11 @@ module.exports = __webpack_require__(/*! ./ComponentView */ "./src/dom_component
 
 module.exports = __webpack_require__(/*! backbone */ "./node_modules/backbone/backbone.js").View.extend({
   initialize: function initialize() {
-    this.model.view = this;
+    var $el = this.$el,
+        model = this.model;
+
+    $el.data('model', model);
+    model.view = this;
   },
   _createElement: function _createElement() {
     return document.createTextNode(this.model.get('content'));
@@ -35529,19 +40912,19 @@ module.exports = ComponentView.extend({
       model.set('content', content, contentOpt);
     } else {
       var clean = function clean(model) {
+        var textable = !!model.get('textable');
         var selectable = !['text', 'default', ''].some(function (type) {
           return model.is(type);
-        });
-        model.set({
+        }) || textable;
+        model.set(_extends({
           editable: selectable && model.get('editable'),
           selectable: selectable,
           hoverable: selectable,
+          removable: textable,
+          draggable: textable,
           highlightable: 0,
-          removable: 0,
-          draggable: 0,
-          copyable: 0,
-          toolbar: ''
-        }, opts);
+          copyable: textable
+        }, !textable && { toolbar: '' }), opts);
         model.get('components').each(function (model) {
           return clean(model);
         });
@@ -36030,11 +41413,12 @@ module.exports = _backbone2.default.View.extend({
         $el = this.$el,
         el = this.el;
 
-    var defaultAttr = { 'data-gjs-type': model.get('type') || 'default' };
-
-    if (model.get('highlightable')) {
-      defaultAttr['data-highlightable'] = 1;
-    }
+    var defaultAttr = _extends({
+      'data-gjs-type': model.get('type') || 'default'
+    }, model.get('highlightable') && { 'data-highlightable': 1 }, model.get('textable') && {
+      contenteditable: 'false',
+      'data-gjs-textable': 'true'
+    });
 
     // Remove all current attributes
     (0, _underscore.each)(el.attributes, function (attr) {
@@ -36079,15 +41463,11 @@ module.exports = _backbone2.default.View.extend({
    * @private
    */
   updateScript: function updateScript() {
-    if (!this.model.get('script')) {
-      return;
-    }
+    var model = this.model,
+        em = this.em;
 
-    var em = this.em;
-    if (em) {
-      var canvas = em.get('Canvas');
-      canvas.getCanvasView().updateScript(this);
-    }
+    if (!model.get('script')) return;
+    em && em.get('Canvas').getCanvasView().updateScript(this);
   },
 
 
@@ -36154,6 +41534,7 @@ module.exports = _backbone2.default.View.extend({
     this.updateClasses();
   },
   render: function render() {
+    if (this.modelOpt.temporary) return this;
     this.renderAttributes();
     this.renderChildren();
     this.updateScript();
@@ -36215,8 +41596,11 @@ module.exports = _backbone2.default.View.extend({
     var tempRemove = opts.temporary;
     if (!view) return;
     view.remove.apply(view);
-    var children = view.childrenView;
-    children && children.stopListening();
+    var childrenView = view.childrenView,
+        scriptContainer = view.scriptContainer;
+
+    childrenView && childrenView.stopListening();
+    scriptContainer && scriptContainer.remove();
     removed.components().forEach(function (it) {
       return _this.removeChildren(it, coll, opts);
     });
@@ -37630,7 +43014,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
                                                                                                                                                                                                                                                                    *
                                                                                                                                                                                                                                                                    * ### Components
                                                                                                                                                                                                                                                                    * * `component:create` - Component is created (only the model, is not yet mounted in the canvas), called after the init() method
-                                                                                                                                                                                                                                                                   * * `component:mount` - Component is monted to an element and rendered in canvas
+                                                                                                                                                                                                                                                                   * * `component:mount` - Component is mounted to an element and rendered in canvas
                                                                                                                                                                                                                                                                    * * `component:add` - Triggered when a new component is added to the editor, the model is passed as an argument to the callback
                                                                                                                                                                                                                                                                    * * `component:remove` - Triggered when a component is removed, the model is passed as an argument to the callback
                                                                                                                                                                                                                                                                    * * `component:clone` - Triggered when a component is cloned, the new model is passed as an argument to the callback
@@ -39242,7 +44626,14 @@ var _plugin_manager = __webpack_require__(/*! ./plugin_manager */ "./src/plugin_
 
 var _plugin_manager2 = _interopRequireDefault(_plugin_manager);
 
+var _templates = __webpack_require__(/*! ./templates */ "./src/templates/index.js");
+
+var _templates2 = _interopRequireDefault(_templates);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _require = __webpack_require__(/*! ./bootstrap */ "./src/bootstrap/index.js"),
+    bSettings = _require.bSettings;
 
 (0, _polyfills2.default)();
 
@@ -39268,7 +44659,7 @@ module.exports = function () {
     plugins: plugins,
 
     // Will be replaced on build
-    version: '0.14.59',
+    version: '<# VERSION #>',
 
     /**
      * Initialize the editor with passed options
@@ -39293,6 +44684,8 @@ module.exports = function () {
       config = _extends({}, defaultConfig, config);
       config.el = (0, _underscore.isElement)(els) ? els : document.querySelector(els);
       var editor = new _editor2.default(config).init();
+      bSettings(editor, config);
+      (0, _templates2.default)(editor, config);
 
       // Load plugins
       config.plugins.forEach(function (pluginId) {
@@ -40247,12 +45640,13 @@ exports.default = _backbone2.default.View.extend({
     var ppfx = this.ppfx;
     var model = this.model;
     var components = model.get('components');
+    var type = model.get('type') || 'default';
     model.set('open', false);
     this.listenTo(components, 'remove add reset', this.checkChildren);
     this.listenTo(model, 'change:status', this.updateStatus);
     this.listenTo(model, 'change:open', this.updateOpening);
     this.listenTo(model, 'change:style:display', this.updateVisibility);
-    this.className = pfx + 'layer no-select ' + ppfx + 'two-color';
+    this.className = pfx + 'layer ' + pfx + 'layer__' + type + ' no-select ' + ppfx + 'two-color';
     this.inputNameCls = ppfx + 'layer-name';
     this.clsTitleC = pfx + 'layer-title-c';
     this.clsTitle = pfx + 'layer-title';
@@ -40530,8 +45924,12 @@ exports.default = _backbone2.default.View.extend({
     this.render();
   },
   render: function render() {
-    var model = this.model;
-    var pfx = this.pfx;
+    var model = this.model,
+        config = this.config,
+        pfx = this.pfx,
+        ppfx = this.ppfx;
+
+    var hidden = config.hideTextnode && model.is('textnode');
     var vis = this.isVisible();
     var el = this.$el.empty();
     var level = this.level + 1;
@@ -40561,6 +45959,7 @@ exports.default = _backbone2.default.View.extend({
     }
 
     !vis && (this.className += ' ' + pfx + 'hide');
+    hidden && (this.className += ' ' + ppfx + 'hidden');
     el.attr('class', this.className);
     this.updateOpening();
     this.updateStatus();
@@ -40666,10 +46065,6 @@ module.exports = __webpack_require__(/*! backbone */ "./node_modules/backbone/ba
     var fragment = fragmentEl || null;
     var viewObject = _ItemView2.default;
 
-    if (!this.isCountable(model, this.config.hideTextnode)) {
-      return;
-    }
-
     var view = new viewObject({
       level: level,
       model: model,
@@ -40743,8 +46138,8 @@ module.exports = __webpack_require__(/*! backbone */ "./node_modules/backbone/ba
 "use strict";
 
 
-var crc = 'create-comp';
-var mvc = 'move-comp';
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 var swv = 'sw-visibility';
 var expt = 'export-template';
 var osm = 'open-sm';
@@ -40764,39 +46159,22 @@ module.exports = {
   }, {
     id: 'options',
     buttons: [{
-      active: true,
+      active: false,
       id: swv,
       className: 'fa fa-square-o',
       command: swv,
       context: swv,
-      attributes: { title: 'View components' }
-    }, {
-      id: prv,
-      className: 'fa fa-eye',
-      command: prv,
-      context: prv,
-      attributes: { title: 'Preview' }
-    }, {
-      id: ful,
-      className: 'fa fa-arrows-alt',
-      command: ful,
-      context: ful,
-      attributes: { title: 'Fullscreen' }
-    }, {
-      id: expt,
-      className: 'fa fa-code',
-      command: expt,
-      attributes: { title: 'View code' }
+      attributes: { title: 'Gúias de diseño' }
     }]
   }, {
     id: 'views',
     buttons: [{
-      id: osm,
-      className: 'fa fa-paint-brush',
-      command: osm,
+      id: obl,
+      className: 'fa fa-th-large',
+      command: obl,
       active: true,
       togglable: 0,
-      attributes: { title: 'Open Style Manager' }
+      attributes: { title: 'Bloques de Código' }
     }, {
       id: otm,
       className: 'fa fa-cog',
@@ -40804,18 +46182,19 @@ module.exports = {
       togglable: 0,
       attributes: { title: 'Settings' }
     }, {
-      id: ola,
-      className: 'fa fa-bars',
-      command: ola,
+      id: osm,
+      className: 'fa fa-paint-brush',
+      command: osm,
       togglable: 0,
-      attributes: { title: 'Open Layer Manager' }
-    }, {
-      id: obl,
-      className: 'fa fa-th-large',
-      command: obl,
-      togglable: 0,
-      attributes: { title: 'Open Blocks' }
-    }]
+      attributes: { title: 'Estilos' }
+    }, _defineProperty({
+      id: 'open-code',
+      className: 'fa fa-code',
+      attributes: { title: 'Modificar Código' },
+      command: 'open-code'
+    }, 'attributes', {
+      title: 'Editar Code'
+    })]
   }],
 
   // Editor model
@@ -43307,12 +48686,12 @@ module.exports = {
   selectors: [],
 
   // Label for selectors
-  label: 'Classes',
+  label: 'Clases',
 
   // Label for states
-  statesLabel: '- State -',
+  statesLabel: '- Estado -',
 
-  selectedLabel: 'Selected',
+  selectedLabel: 'Seleccionado',
 
   // States
   states: [{ name: 'hover', label: 'Hover' }, { name: 'active', label: 'Click' }, { name: 'nth-of-type(2n)', label: 'Even/Odd' }]
@@ -43331,7 +48710,7 @@ module.exports = {
 
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; /**
-                                                                                                                                                                                                                                                                   * Selectors in GrapesJS are used in CSS Composer inside Rules and in Components as classes. To get better this concept let's take
+                                                                                                                                                                                                                                                                   * Selectors in GrapesJS are used in CSS Composer inside Rules and in Components as classes. To illustrate this concept let's take
                                                                                                                                                                                                                                                                    * a look at this code:
                                                                                                                                                                                                                                                                    *
                                                                                                                                                                                                                                                                    * ```css
@@ -44940,7 +50319,7 @@ module.exports = {
   appendTo: '',
 
   // Text to show in case no element selected
-  textNoElement: 'Select an element before using Style Manager',
+  textNoElement: 'Hacer clic en algún elemento para modificar su estilo',
 
   // Hide the property in case it's not stylable for the
   // selected component (each component has 'stylable' property)
@@ -48995,6 +54374,8 @@ var _backbone2 = _interopRequireDefault(_backbone);
 
 var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
 
+var _mixins = __webpack_require__(/*! utils/mixins */ "./src/utils/mixins.js");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var SectorView = __webpack_require__(/*! ./SectorView */ "./src/style_manager/view/SectorView.js");
@@ -49053,7 +54434,7 @@ module.exports = _backbone2.default.View.extend({
     pt.helper = null;
 
     // Create computed style container
-    if (el) {
+    if (el && !(0, _mixins.isTextNode)(el)) {
       var stateStr = state ? ':' + state : null;
       pt.computed = window.getComputedStyle(el, stateStr);
     }
@@ -49187,6 +54568,126 @@ module.exports = _backbone2.default.View.extend({
 
 /***/ }),
 
+/***/ "./src/templates/index.js":
+/*!********************************!*\
+  !*** ./src/templates/index.js ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _video_background = __webpack_require__(/*! ./video_background */ "./src/templates/video_background.js");
+
+var _video_background2 = _interopRequireDefault(_video_background);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (editor) {
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  window.editor = editor;
+
+  // Add components
+  (0, _video_background2.default)(editor, options);
+
+  // TODO Remove
+  //editor.on('load', () => editor.addComponents(`<div style="margin:0 100px; padding:25px;">Content loaded from the plugin</div>`))
+};
+
+/***/ }),
+
+/***/ "./src/templates/product.html":
+/*!************************************!*\
+  !*** ./src/templates/product.html ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = "\n\n    <div class=\"features-clean\">\n        <div class=\"container\">\n            <div class=\"intro\">\n                <h2 class=\"text-center\">Features</h2>\n                <p class=\"text-center\">Nunc luctus in metus eget fringilla. Aliquam sed justo ligula. Vestibulum nibh erat, pellentesque ut laoreet vitae. </p>\n            </div>\n            <div class=\"row features\">\n                <div class=\"col-sm-6 col-lg-4 item\"><i class=\"fa fa-map-marker icon\"></i>\n                    <h3 class=\"name\">Works everywhere</h3>\n                    <p class=\"description\">Aenean tortor est, vulputate quis leo in, vehicula rhoncus lacus. Praesent aliquam in tellus eu gravida. Aliquam varius finibus est.</p>\n                </div>\n                <div class=\"col-sm-6 col-lg-4 item\"><i class=\"fa fa-clock-o icon\"></i>\n                    <h3 class=\"name\">Always available</h3>\n                    <p class=\"description\">Aenean tortor est, vulputate quis leo in, vehicula rhoncus lacus. Praesent aliquam in tellus eu gravida. Aliquam varius finibus est.</p>\n                </div>\n                <div class=\"col-sm-6 col-lg-4 item\"><i class=\"fa fa-list-alt icon\"></i>\n                    <h3 class=\"name\">Customizable</h3>\n                    <p class=\"description\">Aenean tortor est, vulputate quis leo in, vehicula rhoncus lacus. Praesent aliquam in tellus eu gravida. Aliquam varius finibus est.</p>\n                </div>\n                <div class=\"col-sm-6 col-lg-4 item\"><i class=\"fa fa-leaf icon\"></i>\n                    <h3 class=\"name\">Organic</h3>\n                    <p class=\"description\">Aenean tortor est, vulputate quis leo in, vehicula rhoncus lacus. Praesent aliquam in tellus eu gravida. Aliquam varius finibus est.</p>\n                </div>\n                <div class=\"col-sm-6 col-lg-4 item\"><i class=\"fa fa-plane icon\"></i>\n                    <h3 class=\"name\">Fast</h3>\n                    <p class=\"description\">Aenean tortor est, vulputate quis leo in, vehicula rhoncus lacus. Praesent aliquam in tellus eu gravida. Aliquam varius finibus est.</p>\n                </div>\n                <div class=\"col-sm-6 col-lg-4 item\"><i class=\"fa fa-phone icon\"></i>\n                    <h3 class=\"name\">Mobile-first</h3>\n                    <p class=\"description\">Aenean tortor est, vulputate quis leo in, vehicula rhoncus lacus. Praesent aliquam in tellus eu gravida. Aliquam varius finibus est.</p>\n                </div>\n            </div>\n        </div>\n    </div>\n";
+
+/***/ }),
+
+/***/ "./src/templates/video_background.js":
+/*!*******************************************!*\
+  !*** ./src/templates/video_background.js ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _product = __webpack_require__(/*! ./product.html */ "./src/templates/product.html");
+
+var _product2 = _interopRequireDefault(_product);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (editor) {
+    var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    var c = config;
+    var bm = editor.BlockManager;
+    var cats = c.blockCategories;
+
+    // LAYOUT
+
+    bm.add('single-col').set({
+        label: 'Imágenes con texto alternados',
+        category: 'Plantillas',
+        attributes: { class: 'fa fa-star' },
+        content: videoBackground
+    });
+
+    bm.add('contact-form').set({
+        label: 'Formulario de contacto',
+        attributes: { class: 'fa fa-star' },
+        category: 'Plantillas',
+        content: contactForm
+    });
+
+    bm.add('jb-normal').set({
+        label: 'Titular',
+        attributes: { class: 'fa fa-star' },
+        category: 'Plantillas',
+        content: jumboNormal
+    });
+
+    bm.add('jb-fluid').set({
+        label: 'Titual Ancho Completo',
+        attributes: { class: 'fa fa-star' },
+        category: 'Plantillas',
+        content: jumboFluid
+    });
+
+    bm.add('jb-fluid').set({
+        label: 'Textos con íconos',
+        attributes: { class: 'fa fa-star' },
+        category: 'Plantillas',
+        content: _product2.default
+    });
+};
+
+var videoBackground = '\n\n<div class="how-section1">\n                    <div class="row">\n                        <div class="col-md-6 how-img">\n                            <img src="https://image.ibb.co/dDW27U/Work_Section2_freelance_img1.png" class="rounded-circle img-fluid" alt=""/>\n                        </div>\n                        <div class="col-md-6">\n                            <h4>Find rewarding projects</h4>\n                                        <h4 class="subheading">GetLance is a great place to find more clients, and to run and grow your own freelance business.</h4>\n                        <p class="text-muted">Freedom to work on ideal projects. On GetLance, you run your own business and choose your own clients and projects. Just complete your profile and we\u2019ll highlight ideal jobs. Also search projects, and respond to client invitations.\n                                            Wide variety and high pay. Clients are now posting jobs in hundreds of skill categories, paying top price for great work.\n                                            More and more success. The greater the success you have on projects, the more likely you are to get hired by clients that use GetLance.</p>\n                        </div>\n                    </div>\n                    <div class="row">\n                        <div class="col-md-6">\n                            <h4>Get hired quickly</h4>\n                                        <h4 class="subheading">GetLance makes it easy to connect with clients and begin doing great work.</h4>\n                                        <p class="text-muted">Streamlined hiring. GetLance\u2019s sophisticated algorithms highlight projects you\u2019re a great fit for.\n                                            Top Rated and Rising Talent programs. Enjoy higher visibility with the added status of prestigious programs.\n                                            Do substantial work with top clients. GetLance pricing encourages freelancers to use GetLance for repeat relationships with their clients.</p>\n                        </div>\n                        <div class="col-md-6 how-img">\n                            <img src="https://image.ibb.co/cHgKnU/Work_Section2_freelance_img2.png" class="rounded-circle img-fluid" alt=""/>\n                        </div>\n                    </div>\n                    <div class="row">\n                        <div class="col-md-6 how-img">\n                             <img src="https://image.ibb.co/ctSLu9/Work_Section2_freelance_img3.png" class="rounded-circle img-fluid" alt=""/>\n                        </div>\n                        <div class="col-md-6">\n                            <h4>Work efficiently, effectively.</h4>\n                                        <h4 class="subheading">With GetLance, you have the freedom and flexibility to control when, where, and how you work. Each project includes an online workspace shared by you and your client, allowing you to:</h4>\n                                        <p class="text-muted">Send and receive files. Deliver digital assets in a secure environment.\n                                            Share feedback in real time. Use GetLance Messages to communicate via text, chat, or video.\n                                            Use our mobile app. Many features can be accessed on your mobile phone when on the go.</p>\n                        </div>\n                    </div>\n                    <div class="row">\n                        <div class="col-md-6">\n                            <h4>Get paid on time</h4>\n                                        <h4 class="subheading">All projects include GetLance Payment Protection \u2014 helping ensure that you get paid for all work successfully completed through the freelancing website.</h4>\n                                        <p class="text-muted">All invoices and payments happen through GetLance. Count on a simple and streamlined process.\n                                            Hourly and fixed-price projects. For hourly work, submit timesheets through GetLance. For fixed-price jobs, set milestones and funds are released via GetLance escrow features.\n                                            Multiple payment options. Choose a payment method that works best for you, from direct deposit or PayPal to wire transfer and more.</p>\n                        </div>\n                        <div class="col-md-6 how-img">\n                            <img src="https://image.ibb.co/gQ9iE9/Work_Section2_freelance_img4.png" class="rounded-circle img-fluid" alt=""/>\n                        </div>\n                    </div>\n                </div>\n';
+
+var contactForm = '<div class="container">\n<div class="row justify-content-center">\n<div class="col-12 col-md-8 col-lg-6 pb-5">\n\n\n                <!--Form with header-->\n\n                <form action="mail.php" method="post">\n                    <div class="card border-primary rounded-0">\n                        <div class="card-header p-0">\n                            <div class="bg-info text-white text-center py-2">\n                                <h3><i class="fa fa-envelope"></i> Contactanos</h3>\n                                <p class="m-0">Con gusto te ayudaremos</p>\n                            </div>\n                        </div>\n                        <div class="card-body p-3">\n\n                            <!--Body-->\n                            <div class="form-group">\n                                <div class="input-group mb-2">\n                                    <div class="input-group-prepend">\n                                        <div class="input-group-text"><i class="fa fa-user text-info"></i></div>\n                                    </div>\n                                    <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Nombre y Apellido" required>\n                                </div>\n                            </div>\n                            <div class="form-group">\n                                <div class="input-group mb-2">\n                                    <div class="input-group-prepend">\n                                        <div class="input-group-text"><i class="fa fa-envelope text-info"></i></div>\n                                    </div>\n                                    <input type="email" class="form-control" id="nombre" name="email" placeholder="ejemplo@gmail.com" required>\n                                </div>\n                            </div>\n\n                            <div class="form-group">\n                                <div class="input-group mb-2">\n                                    <div class="input-group-prepend">\n                                        <div class="input-group-text"><i class="fa fa-comment text-info"></i></div>\n                                    </div>\n                                    <textarea class="form-control" placeholder="Envianos tu Mensaje" required></textarea>\n                                </div>\n                            </div>\n\n                            <div class="text-center">\n                                <input type="submit" value="Enviar" class="btn btn-info btn-block rounded-0 py-2">\n                            </div>\n                        </div>\n\n                    </div>\n                </form>\n                <!--Form with header-->\n\n\n            </div>\n</div>\n</div>';
+
+var jumboNormal = '\n<div class="jumbotron">\n  <h1 class="display-4">Hello, world!</h1>\n  <p class="lead">This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.</p>\n  <hr class="my-4">\n  <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>\n  <a class="btn btn-primary btn-lg" href="#" role="button">Learn more</a>\n</div>\n';
+
+var jumboFluid = '<div class="jumbotron jumbotron-fluid">\n<div class="container">\n  <h1 class="display-4">Fluid jumbotron</h1>\n  <p class="lead">This is a modified jumbotron that occupies the entire horizontal space of its parent.</p>\n</div>\n</div>';
+
+/***/ }),
+
 /***/ "./src/trait_manager/config/config.js":
 /*!********************************************!*\
   !*** ./src/trait_manager/config/config.js ***!
@@ -49203,20 +54704,19 @@ module.exports = {
   // Specify the element to use as a container, string (query) or HTMLElement
   // With the empty value, nothing will be rendered
   appendTo: '',
-
-  labelContainer: 'Component settings',
+  labelContainer: 'Configuración del elemento',
 
   // Placeholder label for text input types
-  labelPlhText: 'eg. Text here',
+  labelPlhText: 'ej. Texto aquí',
 
   // Placeholder label for href input
-  labelPlhHref: 'eg. https://google.com',
+  labelPlhHref: 'ej. https://google.com',
 
   // Default options for the target input
-  optionsTarget: [{ value: '', name: 'This window' }, { value: '_blank', name: 'New window' }],
+  optionsTarget: [{ value: '', name: 'Esta ventana' }, { value: '_blank', name: 'Nueva ventana' }],
 
   // Text to show in case no element selected
-  textNoElement: 'Select an element before using Trait Manager'
+  textNoElement: 'Selecciona a un elemento para acceder a su configuración'
 };
 
 /***/ }),
@@ -49885,7 +55385,7 @@ module.exports = TraitView.extend({
           value = el;
         } else {
           name = el.name ? el.name : el.value;
-          value = ('' + (el.value || el.id)).replace(/"/g, '&quot;');
+          value = ('' + ((0, _underscore.isUndefined)(el.value) ? el.id : el.value)).replace(/"/g, '&quot;');
           style = el.style ? el.style.replace(/"/g, '&quot;') : '';
           attrs += style ? ' style="' + style + '"' : '';
         }
@@ -50021,7 +55521,7 @@ module.exports = Backbone.View.extend({
       var value = this.getModelValue();
       var input = $('<input type="' + type + '" placeholder="' + plh + '">');
 
-      if (value) {
+      if (!(0, _underscore.isUndefined)(value)) {
         md.set({ value: value }, { silent: true });
         input.prop('value', value);
       }
@@ -53925,6 +59425,7 @@ module.exports = _backbone2.default.View.extend({
     this.canvasRelative = o.canvasRelative || 0;
     this.selectOnEnd = !o.avoidSelectOnEnd;
     this.scale = o.scale;
+    this.activeTextModel = null;
 
     if (this.em && this.em.on) {
       this.em.on('change:canvasOffset', this.udpateOffset);
@@ -53967,6 +59468,32 @@ module.exports = _backbone2.default.View.extend({
    */
   setDropContent: function setDropContent(content) {
     this.dropContent = content;
+  },
+  updateTextViewCursorPosition: function updateTextViewCursorPosition(e) {
+    var Canvas = this.em.get('Canvas');
+    var targetDoc = Canvas.getDocument();
+    var range = null;
+
+    if (targetDoc.caretRangeFromPoint) {
+      // Chrome
+      var poiner = (0, _mixins.getPointerEvent)(e);
+      range = targetDoc.caretRangeFromPoint(poiner.clientX, poiner.clientY);
+    } else if (e.rangeParent) {
+      // Firefox
+      range = targetDoc.createRange();
+      range.setStart(e.rangeParent, e.rangeOffset);
+    }
+
+    var sel = Canvas.getWindow().getSelection();
+    Canvas.getFrameEl().focus();
+    sel.removeAllRanges();
+    range && sel.addRange(range);
+  },
+  setContentEditable: function setContentEditable(model, mode) {
+    if (model) {
+      var el = model.getEl();
+      if (el.contentEditable != mode) el.contentEditable = mode;
+    }
   },
 
 
@@ -54188,29 +59715,48 @@ module.exports = _backbone2.default.View.extend({
    * @return {Model}
    */
   getSourceModel: function getSourceModel(source) {
-    var src = source || this.eV;
-    var dropContent = this.dropContent;
-    var dropModel = this.dropModel;
-    var em = this.em;
+    var _this = this;
+
+    var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
+        target = _ref.target,
+        _ref$avoidChildren = _ref.avoidChildren,
+        avoidChildren = _ref$avoidChildren === undefined ? 1 : _ref$avoidChildren;
+
+    var em = this.em,
+        eV = this.eV;
+
+    var src = source || eV;
+    var dropModel = this.dropModel,
+        dropContent = this.dropContent;
+
+    var isTextable = function isTextable(src) {
+      return src && target && src.opt.avoidChildren && _this.isTextableActive(src, target);
+    };
 
     if (dropContent && em) {
+      if (isTextable(dropModel)) {
+        dropModel = null;
+      }
+
       if (!dropModel) {
         var comps = em.get('DomComponents').getComponents();
         var opts = {
+          avoidChildren: avoidChildren,
           avoidStore: 1,
-          avoidChildren: 1,
           avoidUpdateStyle: 1
         };
         var tempModel = comps.add(dropContent, _extends({}, opts, { temporary: 1 }));
         dropModel = comps.remove(tempModel, opts);
         this.dropModel = dropModel instanceof Array ? dropModel[0] : dropModel;
+
+        if (isTextable(dropModel)) {
+          return this.getSourceModel(src, { target: target, avoidChildren: 0 });
+        }
       }
       return dropModel;
     }
 
-    if (src) {
-      return $(src).data('model');
-    }
+    return src && $(src).data('model');
   },
 
 
@@ -54240,11 +59786,14 @@ module.exports = _backbone2.default.View.extend({
    * @param {Event} e
    * */
   onMove: function onMove(e) {
-    var em = this.em;
+    var ev = e;
+    var em = this.em,
+        onMoveClb = this.onMoveClb,
+        plh = this.plh;
+
     this.moved = 1;
 
     // Turn placeholder visibile
-    var plh = this.plh;
     var dsp = plh.style.display;
     if (!dsp || dsp === 'none') plh.style.display = 'block';
 
@@ -54266,6 +59815,7 @@ module.exports = _backbone2.default.View.extend({
     this.eventMove = e;
 
     //var targetNew = this.getTargetFromEl(e.target);
+    var sourceModel = this.getSourceModel();
     var dims = this.dimsFromTarget(e.target, rX, rY);
     var target = this.target;
     var targetModel = this.getTargetModel(target);
@@ -54274,22 +59824,35 @@ module.exports = _backbone2.default.View.extend({
 
     this.lastDims = dims;
     var pos = this.findPosition(dims, rX, rY);
-    // If there is a significant changes with the pointer
-    if (!this.lastPos || this.lastPos.index != pos.index || this.lastPos.method != pos.method) {
-      this.movePlaceholder(this.plh, dims, pos, this.prevTargetDim);
-      if (!this.$plh) this.$plh = $(this.plh);
 
-      // With canvasRelative the offset is calculated automatically for
-      // each element
-      if (!this.canvasRelative) {
-        if (this.offTop) this.$plh.css('top', '+=' + this.offTop + 'px');
-        if (this.offLeft) this.$plh.css('left', '+=' + this.offLeft + 'px');
-      }
+    if (this.isTextableActive(sourceModel, targetModel)) {
+      this.activeTextModel = targetModel;
+      this.setContentEditable(targetModel, true);
 
+      plh.style.display = 'none';
       this.lastPos = pos;
+      this.updateTextViewCursorPosition(ev);
+    } else {
+      this.disableTextable();
+      this.activeTextModel = null;
+
+      // If there is a significant changes with the pointer
+      if (!this.lastPos || this.lastPos.index != pos.index || this.lastPos.method != pos.method) {
+        this.movePlaceholder(this.plh, dims, pos, this.prevTargetDim);
+        if (!this.$plh) this.$plh = $(this.plh);
+
+        // With canvasRelative the offset is calculated automatically for
+        // each element
+        if (!this.canvasRelative) {
+          if (this.offTop) this.$plh.css('top', '+=' + this.offTop + 'px');
+          if (this.offLeft) this.$plh.css('left', '+=' + this.offLeft + 'px');
+        }
+
+        this.lastPos = pos;
+      }
     }
 
-    if (typeof this.onMoveClb === 'function') this.onMoveClb(e);
+    (0, _underscore.isFunction)(onMoveClb) && onMoveClb(e);
 
     em && em.trigger('sorter:drag', {
       target: target,
@@ -54299,6 +59862,14 @@ module.exports = _backbone2.default.View.extend({
       x: rX,
       y: rY
     });
+  },
+  isTextableActive: function isTextableActive(src, trg) {
+    return src && src.get('textable') && trg && trg.is('text');
+  },
+  disableTextable: function disableTextable() {
+    var activeTextModel = this.activeTextModel;
+
+    activeTextModel && activeTextModel.getView().disableEditing();
   },
 
 
@@ -54330,7 +59901,8 @@ module.exports = _backbone2.default.View.extend({
    * @private
    */
   styleInFlow: function styleInFlow(el, parent) {
-    var style = el.style;
+    if ((0, _mixins.isTextNode)(el)) return;
+    var style = el.style || {};
     var $el = $(el);
     var $parent = parent && $(parent);
 
@@ -54369,9 +59941,9 @@ module.exports = _backbone2.default.View.extend({
    * @return {Boolean}
    */
   validTarget: function validTarget(trg, src) {
-    var srcModel = this.getSourceModel(src);
-    src = srcModel && srcModel.view && srcModel.view.el;
     var trgModel = this.getTargetModel(trg);
+    var srcModel = this.getSourceModel(src, { target: trgModel });
+    src = srcModel && srcModel.view && srcModel.view.el;
     trg = trgModel && trgModel.view && trgModel.view.el;
     var result = {
       valid: true,
@@ -54386,20 +59958,21 @@ module.exports = _backbone2.default.View.extend({
       return result;
     }
 
-    // Check if the target could accept the source
-    var droppable = trgModel.get('droppable');
-    droppable = droppable instanceof _backbone2.default.Collection ? 1 : droppable;
-    droppable = droppable instanceof Array ? droppable.join(', ') : droppable;
-    result.dropInfo = droppable;
-    droppable = (0, _underscore.isString)(droppable) ? this.matches(src, droppable) : droppable;
-    result.droppable = droppable;
-
     // check if the source is draggable in target
     var draggable = srcModel.get('draggable');
     draggable = draggable instanceof Array ? draggable.join(', ') : draggable;
     result.dragInfo = draggable;
     draggable = (0, _underscore.isString)(draggable) ? this.matches(trg, draggable) : draggable;
     result.draggable = draggable;
+
+    // Check if the target could accept the source
+    var droppable = trgModel.get('droppable');
+    droppable = droppable instanceof _backbone2.default.Collection ? 1 : droppable;
+    droppable = droppable instanceof Array ? droppable.join(', ') : droppable;
+    result.dropInfo = droppable;
+    droppable = (0, _underscore.isString)(droppable) ? this.matches(src, droppable) : droppable;
+    droppable = draggable && this.isTextableActive(srcModel, trgModel) ? 1 : droppable;
+    result.droppable = droppable;
 
     if (!droppable || !draggable) {
       result.valid = false;
@@ -54614,6 +60187,8 @@ module.exports = _backbone2.default.View.extend({
    * @retun {Array}
    * */
   getChildrenDim: function getChildrenDim(trg) {
+    var _this2 = this;
+
     var dims = [];
     if (!trg) return dims;
 
@@ -54623,24 +60198,22 @@ module.exports = _backbone2.default.View.extend({
       trg = trgModel.view.getChildrenContainer();
     }
 
-    var ch = trg.children;
+    (0, _underscore.each)(trg.children, function (el, i) {
+      var model = (0, _mixins.getModel)(el, $);
+      var elIndex = model && model.index ? model.index() : i;
 
-    for (var i = 0, len = ch.length; i < len; i++) {
-      var el = ch[i];
-
-      if (!this.matches(el, this.itemSel)) {
-        continue;
+      if (!(0, _mixins.isTextNode)(el) && !_this2.matches(el, _this2.itemSel)) {
+        return;
       }
 
-      var dim = this.getDim(el);
-      var dir = this.direction;
+      var dim = _this2.getDim(el);
+      var dir = _this2.direction;
 
-      if (dir == 'v') dir = true;else if (dir == 'h') dir = false;else dir = this.isInFlow(el, trg);
+      if (dir == 'v') dir = true;else if (dir == 'h') dir = false;else dir = _this2.isInFlow(el, trg);
 
-      dim.push(dir);
-      dim.push(el);
+      dim.push(dir, el, elIndex);
       dims.push(dim);
-    }
+    });
 
     return dims;
   },
@@ -54676,7 +60249,7 @@ module.exports = _backbone2.default.View.extend({
    * @retun {Object}
    * */
   findPosition: function findPosition(dims, posX, posY) {
-    var result = { index: 0, method: 'before' };
+    var result = { index: 0, indexEl: 0, method: 'before' };
     var leftLimit = 0,
         xLimit = 0,
         dimRight = 0,
@@ -54700,6 +60273,7 @@ module.exports = _backbone2.default.View.extend({
       if (xLimit && dim[1] > xLimit || yLimit && yCenter >= yLimit || // >= avoid issue with clearfixes
       leftLimit && dimRight < leftLimit) continue;
       result.index = i;
+      result.indexEl = dim[6];
       // If it's not in flow (like 'float' element)
       if (!dim[4]) {
         if (posY < dimDown) yLimit = dimDown;
@@ -54787,9 +60361,8 @@ module.exports = _backbone2.default.View.extend({
    * @return void
    * */
   endMove: function endMove(e) {
-    var _this = this;
+    var _this3 = this;
 
-    var created;
     var moved = [null];
     var docs = this.getDocuments();
     var container = this.getContainerEl();
@@ -54800,10 +60373,7 @@ module.exports = _backbone2.default.View.extend({
     (0, _mixins.off)(container, 'mousemove dragover', this.onMove);
     (0, _mixins.off)(docs, 'mouseup dragend touchend', this.endMove);
     (0, _mixins.off)(docs, 'keydown', this.rollback);
-    //this.$document.off('mouseup', this.endMove);
-    //this.$document.off('keydown', this.rollback);
     this.plh.style.display = 'none';
-    var clsReg = new RegExp('(?:^|\\s)' + this.freezeClass + '(?!\\S)', 'gi');
     var src = this.eV;
 
     if (src && this.selectOnEnd) {
@@ -54818,7 +60388,7 @@ module.exports = _backbone2.default.View.extend({
       var toMove = this.toMove;
       var toMoveArr = (0, _underscore.isArray)(toMove) ? toMove : toMove ? [toMove] : [src];
       toMoveArr.forEach(function (model) {
-        moved.push(_this.move(target, model, lastPos));
+        moved.push(_this3.move(target, model, lastPos));
       });
     }
 
@@ -54830,12 +60400,13 @@ module.exports = _backbone2.default.View.extend({
       this.dragHelper = null;
     }
 
+    this.disableTextable();
     this.selectTargetModel();
     this.toggleSortCursor();
 
     this.toMove = null;
     (0, _underscore.isFunction)(onEndMove) && moved.forEach(function (m) {
-      return onEndMove(m, _this);
+      return onEndMove(m, _this3);
     });
   },
 
@@ -54847,11 +60418,13 @@ module.exports = _backbone2.default.View.extend({
    * @param {Object} pos Object with position coordinates
    * */
   move: function move(dst, src, pos) {
-    var em = this.em;
+    var em = this.em,
+        activeTextModel = this.activeTextModel;
+
     var srcEl = (0, _mixins.getElement)(src);
     em && em.trigger('component:dragEnd:before', dst, srcEl, pos); // @depricated
     var warns = [];
-    var index = pos.index;
+    var index = pos.indexEl;
     var modelToDrop, modelTemp, created;
     var validResult = this.validTarget(dst, srcEl);
     var targetCollection = $(dst).data('collection');
@@ -54861,7 +60434,10 @@ module.exports = _backbone2.default.View.extend({
     var dropInfo = validResult.dropInfo;
     var dragInfo = validResult.dragInfo;
     var dropContent = this.dropContent;
-    droppable = validResult.trgModel instanceof _backbone2.default.Collection ? 1 : droppable;
+    var trgModel = validResult.trgModel;
+
+    droppable = trgModel instanceof _backbone2.default.Collection ? 1 : droppable;
+    var isTextableActive = this.isTextableActive(model, trgModel);
 
     if (targetCollection && droppable && draggable) {
       index = pos.method === 'after' ? index + 1 : index;
@@ -54872,7 +60448,7 @@ module.exports = _backbone2.default.View.extend({
         opts.temporary = 1;
         modelTemp = targetCollection.add({}, _extends({}, opts));
 
-        if (model) {
+        if (model.collection) {
           modelToDrop = model.collection.remove(model, { temporary: 1 });
         }
       } else {
@@ -54881,7 +60457,20 @@ module.exports = _backbone2.default.View.extend({
         opts.avoidUpdateStyle = 1;
       }
 
-      created = targetCollection.add(modelToDrop, opts);
+      if (isTextableActive) {
+        var viewActive = activeTextModel.getView();
+        activeTextModel.trigger('active');
+        var activeRte = viewActive.activeRte;
+
+        var modelEl = model.getEl();
+        model.getView().render();
+        modelEl.setAttribute('data-gjs-textable', 'true');
+        var outerHTML = modelEl.outerHTML;
+
+        activeRte.insertHTML && activeRte.insertHTML(outerHTML);
+      } else {
+        created = targetCollection.add(modelToDrop, opts);
+      }
 
       if (!dropContent) {
         targetCollection.remove(modelTemp);
@@ -55392,7 +60981,7 @@ module.exports = function () {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.capitalize = exports.getUnitFromValue = exports.getPointerEvent = exports.normalizeFloat = exports.shallowDiff = exports.getElement = exports.getKeyChar = exports.getKeyCode = exports.camelCase = exports.getModel = exports.matches = exports.upFirst = exports.hasDnd = exports.off = exports.on = undefined;
+exports.capitalize = exports.getUnitFromValue = exports.getPointerEvent = exports.normalizeFloat = exports.shallowDiff = exports.getElement = exports.getKeyChar = exports.getKeyCode = exports.isTextNode = exports.camelCase = exports.getElRect = exports.getModel = exports.matches = exports.upFirst = exports.hasDnd = exports.off = exports.on = undefined;
 
 var _underscore = __webpack_require__(/*! underscore */ "./node_modules/underscore/underscore.js");
 
@@ -55509,11 +61098,20 @@ var hasDnd = function hasDnd(em) {
  * @return {HTMLElement}
  */
 var getElement = function getElement(el) {
-  if ((0, _underscore.isElement)(el)) {
+  if ((0, _underscore.isElement)(el) || isTextNode(el)) {
     return el;
   } else if (el && el.getEl) {
     return el.getEl();
   }
+};
+
+/**
+ * Check if element is a text node
+ * @param  {HTMLElement} el
+ * @return {Boolean}
+ */
+var isTextNode = function isTextNode(el) {
+  return el && el.nodeType === 3;
 };
 
 /**
@@ -55525,6 +61123,20 @@ var getModel = function getModel(el, $) {
   var model = el;
   (0, _underscore.isElement)(el) && (model = $(el).data('model'));
   return model;
+};
+
+var getElRect = function getElRect(el) {
+  if (!el) return;
+  var rectText = void 0;
+
+  if (isTextNode(el)) {
+    var range = document.createRange();
+    range.selectNode(el);
+    rectText = range.getBoundingClientRect();
+    range.detach();
+  }
+
+  return rectText || el.getBoundingClientRect();
 };
 
 /**
@@ -55558,7 +61170,9 @@ exports.hasDnd = hasDnd;
 exports.upFirst = upFirst;
 exports.matches = matches;
 exports.getModel = getModel;
+exports.getElRect = getElRect;
 exports.camelCase = camelCase;
+exports.isTextNode = isTextNode;
 exports.getKeyCode = getKeyCode;
 exports.getKeyChar = getKeyChar;
 exports.getElement = getElement;

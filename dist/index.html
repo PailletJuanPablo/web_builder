@@ -3,14 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <title>Constructor!</title>
-    <link rel="stylesheet" href="dist/css/grapes.min.css" />
-    <script src="dist/grapes.min.js"></script>
-    <link rel="stylesheet" href="dist/css/code_editor.css" />
-    <link rel="stylesheet" href="dist/css/templates.css" />
+    <link rel="stylesheet" href="./css/grapes.min.css" />
+    <script src="./grapes.min.js"></script>
+    <link rel="stylesheet" href="./css/code_editor.css" />
+    <link rel="stylesheet" href="./css/templates.css" />
 
-    <script src="dist/js/code_editor.js"></script>
-    <script src="dist/js/fire_export.js"></script>
-    <script src="dist/js/export_zip.js"></script>
+    <script src="./js/code_editor.js"></script>
+    <script src="./js/fire_export.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/5.8.4/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.8.4/firebase-firestore.js"></script>
@@ -26,6 +25,7 @@
 
   <body>
     <div id="gjs" style="height:0px; overflow:hidden;">
+      <header> </header>
       <body>
         <div class="container"> </div>
       </body>
@@ -37,27 +37,17 @@
         noticeOnUnload: 0,
         container: '#gjs',
         height: '100%',
-        fromElement: false,
+        fromElement: true,
         storageManager: { autoload: 0 },
         showDevices: false,
         storageManager: { type: 'firestore' },
-        plugins: ['grapesjs-firestore', 'grapesjs-plugin-export'],
+        plugins: ['grapesjs-firestore'],
         pluginsOpts: {
           'grapesjs-firestore': {
             docId: 'gjs',
             apiKey: 'AIzaSyAsx0BigxXLRmLzYTuVmdF5eh2NFon2hC0',
             authDomain: 'cursomm-a0549.firebaseapp.com',
             projectId: 'cursomm-a0549'
-          },
-          'grapesjs-plugin-export': {
-            btnLabel: 'Descargar archivo',
-            filenamePfx: 'misitio',
-            root: {
-              css: {
-                'style.css': ed => ed.getCss(),
-              },
-              'index.html': ed => `<body>${ed.getHtml()}</body>`
-            }
           }
         },
         styleManager: {
@@ -94,11 +84,10 @@
         }
       });
       editor.BlockManager.add('testBlock', {
-        label: 'Texto Centrado',
+        label: 'Block',
         attributes: { class: 'gjs-fonts gjs-f-b1' },
-        type: 'div',
         category: 'Básicos',
-        content: `<p style="padding-top:50px; padding-bottom:50px; text-align:center"> Doble clic para editar este texto </p> `
+        content: `<div class="row"> <div class="col-md-12"> <p style="padding-top:50px; padding-bottom:50px; text-align:center"> Doble clic para editar <p/> </div> </div>`
       });
     </script>
   </body>

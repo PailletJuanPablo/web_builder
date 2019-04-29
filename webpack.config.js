@@ -1,4 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+
 const pkg = require('./package.json');
 const webpack = require('webpack');
 const path = require('path');
@@ -12,14 +13,11 @@ module.exports = env => {
     path: path.join(__dirname),
     filename: 'dist/grapes.min.js',
     library: name,
-    libraryTarget: 'umd',
+    libraryTarget: 'umd'
   };
 
   if (isProd) {
-    plugins = [
-      new webpack.optimize.ModuleConcatenationPlugin(),
-      new webpack.BannerPlugin(`${name} - ${pkg.version}`),
-    ];
+    plugins = [new webpack.optimize.ModuleConcatenationPlugin(), new webpack.BannerPlugin(`${name} - ${pkg.version}`)];
   } else if (env === 'dev') {
     output.filename = 'dist/grapes.js';
   } else {
@@ -29,31 +27,41 @@ module.exports = env => {
     plugins.push(new HtmlWebpackPlugin({ template, inject: false }));
   }
 
-  plugins.push(new webpack.ProvidePlugin({
-    _: 'underscore',
-    Backbone: 'backbone'
-  }));
+  plugins.push(
+    new webpack.ProvidePlugin({
+      _: 'underscore',
+      Backbone: 'backbone'
+    })
+  );
 
   return {
     entry: './src',
     output: output,
     plugins: plugins,
     mode: isProd ? 'production' : 'development',
-    devtool: isProd ? 'source-map' : (!env ? 'cheap-module-eval-source-map' : false),
+    devtool: isProd ? 'source-map' : !env ? 'cheap-module-eval-source-map' : false,
     devServer: { headers: { 'Access-Control-Allow-Origin': '*' } },
     module: {
-      rules: [{
-        test: /\/index\.js$/,
-        loader: 'string-replace-loader',
-        query: {
-          search: '<# VERSION #>',
-          replace: pkg.version
+      rules: [
+        {
+          test: /\/index\.js$/,
+          loader: 'string-replace-loader',
+          query: {
+            search: '<# VERSION #>',
+            replace: pkg.version
+          }
+        },
+        {
+          test: /\.js$/,
+          loader: 'babel-loader',
+          include: /src/
+        },
+        {
+          test: /\.html$/,
+          exclude: /node_modules/,
+          use: { loader: 'html-loader' }
         }
-      },{
-        test: /\.js$/,
-        loader: 'babel-loader',
-        include: /src/
-      }],
+      ]
     },
     resolve: {
       modules: ['src', 'node_modules'],
@@ -62,4 +70,4 @@ module.exports = env => {
       }
     }
   };
-}
+};

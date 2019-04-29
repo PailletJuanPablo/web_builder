@@ -26,7 +26,35 @@ module.exports = {
           command: swv,
           context: swv,
           attributes: { title: 'Gúias de diseño' }
-        }
+        },
+        {
+          id: prv,
+          className: 'fa fa-eye',
+          command: prv,
+          context: prv,
+          attributes: { title: 'Vista Previa' }
+        },
+        {
+          id: ful,
+          className: 'fa fa-arrows-alt',
+          command: ful,
+          context: ful,
+          attributes: { title: 'Pantalla Completa' }
+        },
+        {
+          id: expt,
+          className: 'fa fa-html5',
+          command: expt,
+          context: expt,
+          attributes: { title: 'Ver código final' }
+        },
+        {
+          id: expt,
+          className: 'fa fa-download',
+          command: 'gjs-export-zip',
+          context: expt,
+          attributes: { title: 'Exportar sitio' }
+        },
       ]
     },
     {
@@ -39,6 +67,21 @@ module.exports = {
           active: true,
           togglable: 0,
           attributes: { title: 'Bloques de Código' }
+        },
+        {
+          id: otm,
+          className: 'fa fa-cog',
+          command: otm,
+          togglable: 0,
+          attributes: { title: 'Configuración' }
+        },
+        {
+          id: ola,
+          className: 'fa fa-html5',
+          command: ola,
+          active: false,
+          togglable: 0,
+          attributes: { title: 'Estructura de Etiquetas' }
         },
         {
           id: osm,

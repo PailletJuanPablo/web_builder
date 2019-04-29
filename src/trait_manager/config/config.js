@@ -4,21 +4,20 @@ module.exports = {
   // Specify the element to use as a container, string (query) or HTMLElement
   // With the empty value, nothing will be rendered
   appendTo: '',
-
-  labelContainer: 'Component settings',
+  labelContainer: 'Configuración del elemento',
 
   // Placeholder label for text input types
-  labelPlhText: 'eg. Text here',
+  labelPlhText: 'ej. Texto aquí',
 
   // Placeholder label for href input
-  labelPlhHref: 'eg. https://google.com',
+  labelPlhHref: 'ej. https://google.com',
 
   // Default options for the target input
   optionsTarget: [
-    { value: '', name: 'This window' },
-    { value: '_blank', name: 'New window' }
+    { value: '', name: 'Esta ventana' },
+    { value: '_blank', name: 'Nueva ventana' }
   ],
 
   // Text to show in case no element selected
-  textNoElement: 'Select an element before using Trait Manager'
+  textNoElement: 'Selecciona a un elemento para acceder a su configuración'
 };

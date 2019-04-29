@@ -8,9 +8,7 @@ module.exports = {
    * scripts: [ 'https://...1.js', 'https://...2.js' ]
    */
   scripts: [
-    'https://code.jquery.com/jquery-3.3.1.slim.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js',
-    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js'
+
   ],
 
   /*
@@ -20,7 +18,6 @@ module.exports = {
    * styles: [ 'https://...1.css', 'https://...2.css' ]
    */
   styles: [
-    'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'
   ],
 
   /**

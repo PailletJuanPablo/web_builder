@@ -3,6 +3,8 @@ import Editor from './editor';
 import { isElement, isFunction } from 'underscore';
 import polyfills from 'utils/polyfills';
 import PluginManager from './plugin_manager';
+const { bSettings } = require('./bootstrap');
+import Templates from './templates';
 polyfills();
 
 module.exports = (() => {
@@ -50,7 +52,7 @@ module.exports = (() => {
       config = { ...defaultConfig, ...config };
       config.el = isElement(els) ? els : document.querySelector(els);
       const editor = new Editor(config).init();
-
+      
       // Load plugins
       config.plugins.forEach(pluginId => {
         let plugin = plugins.get(pluginId);
@@ -76,9 +78,16 @@ module.exports = (() => {
       // is a good point to load stuff like components, css rules, etc.
       editor.getModel().loadOnStart();
       config.autorender && editor.render();
+
+      bSettings(editor, config);
+      Templates(editor, config);
+
       editors.push(editor);
 
       return editor;
     }
   };
-})();
+})
+
+
+();

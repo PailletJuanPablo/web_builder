@@ -224,23 +224,7 @@ module.exports = {
         ]
       },
       {
-        name: 'Flex',
-        open: false,
-        buildProps: [
-          'flex-direction',
-          'flex-wrap',
-          'justify-content',
-          'align-items',
-          'align-content',
-          'order',
-          'flex-basis',
-          'flex-grow',
-          'flex-shrink',
-          'align-self'
-        ]
-      },
-      {
-        name: 'Dimension',
+        name: 'Dimensiones',
         open: false,
         buildProps: [
           'width',
@@ -252,7 +236,7 @@ module.exports = {
         ]
       },
       {
-        name: 'Typography',
+        name: 'Texto',
         open: false,
         buildProps: [
           'font-family',
@@ -277,7 +261,7 @@ module.exports = {
         ]
       },
       {
-        name: 'Decorations',
+        name: 'Decoraciones',
         open: false,
         buildProps: [
           'border-radius-c',
@@ -303,7 +287,7 @@ module.exports = {
   traitManager: {},
 
   // Texts
-  textViewCode: 'Code',
+  textViewCode: 'Código',
 
   // Keep unused styles within the editor
   keepUnusedStyles: 0,
