@@ -55,6 +55,12 @@ module.exports = {
           context: expt,
           attributes: { title: 'Exportar sitio' }
         },
+        {
+          id: 'clean-all',
+          className: 'fa fa-trash icon-blank',
+          command: 'clean-all',
+          attributes: { title: 'Eliminar todo' }
+        }
       ]
     },
     {

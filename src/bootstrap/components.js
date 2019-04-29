@@ -490,7 +490,7 @@ export default (editor, config = {}) => {
       domc.addType('column_break', {
         model: defaultModel.extend({
           defaults: Object.assign({}, defaultModel.prototype.defaults, {
-            'custom-name': 'Column Break',
+            'custom-name': 'Salto de bloques',
             tagName: 'div',
             classes: ['w-100']
           })
@@ -645,7 +645,7 @@ export default (editor, config = {}) => {
               },
               {
                 type: 'checkbox',
-                label: 'Header',
+                label: 'Encabezado',
                 name: 'card-header',
                 changeProp: 1
               },
@@ -958,7 +958,7 @@ export default (editor, config = {}) => {
       domc.addType('header', {
         model: textModel.extend({
           defaults: Object.assign({}, textModel.prototype.defaults, {
-            'custom-name': 'Header',
+            'custom-name': 'Encabezado',
             tagName: 'h1',
             traits: [
               {

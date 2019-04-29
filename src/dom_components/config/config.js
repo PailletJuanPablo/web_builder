@@ -3,7 +3,7 @@ module.exports = {
 
   wrapperId: 'wrapper',
 
-  wrapperName: 'Body',
+  wrapperName: 'Cuerpo',
 
   // Default wrapper configuration
   wrapper: {

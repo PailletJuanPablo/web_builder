@@ -5,6 +5,8 @@ import polyfills from 'utils/polyfills';
 import PluginManager from './plugin_manager';
 const { bSettings } = require('./bootstrap');
 import Templates from './templates';
+import CustomConf from './custom';
+
 polyfills();
 
 module.exports = (() => {
@@ -81,7 +83,7 @@ module.exports = (() => {
 
       bSettings(editor, config);
       Templates(editor, config);
-
+      CustomConf(editor, config)
       editors.push(editor);
 
       return editor;
