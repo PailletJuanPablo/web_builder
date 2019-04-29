@@ -486,7 +486,7 @@ module.exports = Backbone.View.extend({
   },
 
   isTextableActive(src, trg) {
-    return src && src.get('textable') && trg && trg.is('text');
+    return src && src.get && src.get('textable') && trg && trg.is('text');
   },
 
   disableTextable() {

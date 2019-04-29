@@ -1,7 +1,26 @@
 module.exports = {
   stylePrefix: 'sm-',
 
-  sectors: [],
+  sectors: [ {
+    name: 'General',
+    open: false,
+    buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom']
+  },
+  {
+    name: 'Tamaño',
+    open: false,
+    buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding']
+  },
+  {
+    name: 'Fuente',
+    open: false,
+    buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-shadow']
+  },
+  {
+    name: 'Decoraciones',
+    open: false,
+    buildProps: ['border-radius-c', 'background-color', 'border-radius', 'border', 'box-shadow', 'background']
+  }],
 
   // Specify the element to use as a container, string (query) or HTMLElement
   // With the empty value, nothing will be rendered

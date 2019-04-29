@@ -6,6 +6,9 @@ var ola = 'open-layers';
 var obl = 'open-blocks';
 var ful = 'fullscreen';
 var prv = 'preview';
+const svf = 'save-firestore';
+const ldf = 'load-firestore';
+const userId = localStorage.getItem('user_web_id');
 
 module.exports = {
   stylePrefix: 'pn-',
@@ -14,7 +17,30 @@ module.exports = {
   defaults: [
     {
       id: 'commands',
-      buttons: [{}]
+      buttons: [
+        {
+          active: false,
+          id: svf,
+          className: 'fa fa-save',
+          command: svf,
+          attributes: { title: 'Guardar' }
+        },
+        {
+          active: false,
+          id: ldf,
+          className: 'fa fa-cloud-download',
+          command: ldf,
+          attributes: { title: 'Cargar' }
+        },
+        {
+          active: false,
+          command: 'show_info_id',
+          id: 'asddas',
+          className: 'info_data',
+          label: 'Tu id es ' + userId,
+          togglable: false,
+        }
+      ]
     },
     {
       id: 'options',

@@ -15,6 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/5.8.4/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.8.4/firebase-firestore.js"></script>
 
+
     <style>
       body,
       html {
@@ -28,86 +29,31 @@
     <div id="gjs" style="height:0px; overflow:hidden;">
       <style>
         .img-top-demo {
-                width: 100%;
-                height: 150px;
-                text-align: center;
-                padding-top: 50px;
-                background-image: url('https://ak8.picdn.net/shutterstock/videos/31579318/thumb/1.jpg');
-                color: white;
-            }
+          width: 100%;
+          height: 150px;
+          text-align: center;
+          padding-top: 50px;
+          background-image: url('https://ak8.picdn.net/shutterstock/videos/31579318/thumb/1.jpg');
+          color: white;
+        }
 
-            .texto-bottom {
-              padding-top: 25px;
-                text-align: center;
-                font-weight: bold;
-            }
-
-        </style>
+        .texto-bottom {
+          padding-top: 25px;
+          text-align: center;
+          font-weight: bold;
+        }
+      </style>
       <body>
-            <div class="container-fluid img-top-demo"> 
-              <h1> Editor en tiempo real</h1> 
-                        </div>
-            <div class="container-fluid texto-bottom">
-            <p> La finalidad de esta herramienta es aprender HTML y CSS por la práctica, pudiendo visualizar los elementos en tiempo real </p>
-            <p> A la derecha podrás visualizar distintas opciones para utilizar este editor </p>
-            </div>
-    </body> 
-  
-  </div>
+        <div class="container-fluid img-top-demo"> <h1> Editor en tiempo real</h1> </div>
+        <div class="container-fluid texto-bottom">
+          <p> La finalidad de esta herramienta es aprender HTML y CSS por la práctica, pudiendo visualizar los elementos en tiempo real </p>
+          <p> A la derecha podrás visualizar distintas opciones para utilizar este editor </p>
+        </div>
+      </body>
+    </div>
 
     <script type="text/javascript">
       var editor = grapesjs.init({
-        showOffsets: 1,
-        noticeOnUnload: 0,
-        container: '#gjs',
-        height: '100%',
-        fromElement: true,
-        storageManager: { autoload: 0 },
-        showDevices: false,
-        storageManager: { type: 'firestore' },
-        plugins: ['grapesjs-firestore', 'grapesjs-plugin-export'],
-        pluginsOpts: {
-          'grapesjs-firestore': {
-            docId: 'gjs',
-            apiKey: 'AIzaSyAsx0BigxXLRmLzYTuVmdF5eh2NFon2hC0',
-            authDomain: 'cursomm-a0549.firebaseapp.com',
-            projectId: 'cursomm-a0549'
-          },
-          'grapesjs-plugin-export': {
-            btnLabel: 'Descargar mi web',
-            filenamePfx: 'misitio',
-            root: {
-              css: {
-                'style.css': ed => ed.getCss()
-              },
-              'index.html': ed => `<body>${ed.getHtml()}</body>`
-            }
-          }
-        },
-        styleManager: {
-          sectors: [
-            {
-              name: 'General',
-              open: false,
-              buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom']
-            },
-            {
-              name: 'Tamaño',
-              open: false,
-              buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding']
-            },
-            {
-              name: 'Fuente',
-              open: false,
-              buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-shadow']
-            },
-            {
-              name: 'Decoraciones',
-              open: false,
-              buildProps: ['border-radius-c', 'background-color', 'border-radius', 'border', 'box-shadow', 'background']
-            }
-          ]
-        },
         canvas: {
           styles: ['https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'],
           scripts: [
@@ -117,15 +63,14 @@
           ]
         }
       });
-    
     </script>
     <div id="footerInfo" style="position: absolute; bottom: 0; color: black; z-index: 999999; background: white; font-family: Arial, Helvetica, sans-serif; font-size: 10px" onclick="removeFooter()">
-      Herramienta creada con fines educativos por Juan Pablo Paillet - Licencia BSD - <a href="mailto:pailletjuanpablo@gmail.com"> Contacto  </a> <span style="cursor: pointer"> X </span>  
+      Herramienta creada con fines educativos por Juan Pablo Paillet - Licencia BSD - <a href="mailto:pailletjuanpablo@gmail.com"> Contacto </a> <span style="cursor: pointer"> X </span>
     </div>
     <script>
       const removeFooter = () => {
-        document.getElementById('footerInfo').remove()
-      }
-      </script>
+        document.getElementById('footerInfo').remove();
+      };
+    </script>
   </body>
 </html>

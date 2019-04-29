@@ -48,12 +48,60 @@ module.exports = (() => {
      * })
      */
     init(config = {}) {
+
+
+      let localId = localStorage.getItem('user_web_id');
+      if(!localId){
+        let timestamp = Math.round((new Date()).getTime() / 1000);
+        localStorage.setItem('user_web_id', timestamp);
+        localId = String(timestamp);
+      }
+      console.log(localId)
+
+      config.showOffsets = 1;
+      config.noticeOnUnload = 0;
+      config.container = '#gjs';
+      config.height = '100%';
+      config.fromElement = true;
+      config.storageManager = { autoload: 0 };
+      config.showDevices = false;
+      config.storageManager = { type: 'firestore' };
+      (config.plugins = ['grapesjs-firestore', 'grapesjs-plugin-export']),
+        (config.pluginsOpts = {
+          'grapesjs-firestore': {
+            docId: localId,
+            apiKey: 'AIzaSyAsx0BigxXLRmLzYTuVmdF5eh2NFon2hC0',
+            authDomain: 'cursomm-a0549.firebaseapp.com',
+            projectId: 'cursomm-a0549'
+          },
+          'grapesjs-plugin-export': {
+            btnLabel: 'Descargar mi web',
+            filenamePfx: 'misitio',
+            root: {
+              css: {
+                'style.css': ed => ed.getCss()
+              },
+              'index.html': ed => `
+            <!doctype html>
+              <html lang="en">
+                <head>
+                  <meta charset="utf-8">
+                  <link rel="stylesheet" href='./css/style.css'>
+                  <link rel='stylesheet' href='https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css' />
+                </head>
+                <body>${ed.getHtml()}</body>
+              <html>
+            `
+            }
+          }
+        });
+
       const els = config.container;
       if (!els) throw new Error("'container' is required");
       config = { ...defaultConfig, ...config };
       config.el = isElement(els) ? els : document.querySelector(els);
       const editor = new Editor(config).init();
-      
+
       // Load plugins
       config.plugins.forEach(pluginId => {
         let plugin = plugins.get(pluginId);
@@ -79,15 +127,12 @@ module.exports = (() => {
       // is a good point to load stuff like components, css rules, etc.
       editor.getModel().loadOnStart();
       config.autorender && editor.render();
+      CustomConf(editor, config);
 
       editors.push(editor);
 
-      CustomConf(editor, config)
 
       return editor;
     }
   };
-})
-
-
-();
+})();
