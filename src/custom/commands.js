@@ -51,4 +51,14 @@ export default (editor, config) => {
       });
     }
   });
+
+  cmdm.add('open-site', {
+    run: () => {
+      window.open("http://cursodesarrolloweb.net/sitios/"+userId);
+    }
+  });
+
+
+  
+
 };

@@ -26536,73 +26536,46 @@ exports.default = function (editor) {
   if (cats.layout) {
 
     bm.add('single-col').set({
-      label: 'Bloque ancho total',
+      label: 'Fila de 1 bloque (Ancho comprimido)',
       category: 'Estructura',
       attributes: { class: 'fa fa-columns' },
-      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-md-12">\n              <p> Texto </p>\n            </div>\n          </div>\n        </div>\n    '
+      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-md-12">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n          </div>\n        </div>\n    '
+    });
+
+    bm.add('single-col-fl').set({
+      label: 'Fila de 1 bloque (Ancho completo)',
+      category: 'Estructura',
+      attributes: { class: 'fa fa-columns' },
+      content: '\n        <div class="container-fluid">\n          <div class="row">\n            <div class="col-md-12">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n          </div>\n        </div>\n    '
     });
 
     bm.add('two-col').set({
-      label: 'Dos bloques',
+      label: 'Fila de 2 bloques (Ancho comprimido)',
       category: 'Estructura',
       attributes: { class: 'fa fa-columns' },
-      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-6">\n              <p> Texto </p>\n            </div>\n            <div class="col-6">\n              <p> Texto </p>\n            </div>\n          </div>\n        </div>\n    '
+      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-6">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n            <div class="col-6">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n          </div>\n        </div>\n    '
+    });
+
+    bm.add('two-col-fl').set({
+      label: 'Fila de 2 bloques (Ancho completo)',
+      category: 'Estructura',
+      attributes: { class: 'fa fa-columns' },
+      content: '\n        <div class="container-fluid">\n          <div class="row">\n            <div class="col-6">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n            <div class="col-6">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n          </div>\n        </div>\n    '
     });
 
     bm.add('three-col').set({
-      label: 'Tres bloques',
+      label: 'Fila de 3 bloques (Ancho comprimido)',
       category: 'Estructura',
       attributes: { class: 'fa fa-columns' },
-      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-4">\n              <p> Texto </p>\n            </div>\n            <div class="col-4">\n              <p> Texto </p>\n            </div>\n            <div class="col-4">\n            <p> Texto </p>\n          </div>\n          </div>\n        </div>\n    '
+      content: '\n        <div class="container">\n          <div class="row">\n            <div class="col-4">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n            <div class="col-4">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n            <div class="col-4">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n          </div>\n          </div>\n        </div>\n    '
     });
 
-    /*
-        if (blocks.container) {
-          bm.add('container').set({
-            label: `
-                <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="far" data-icon="window-maximize" class="svg-inline--fa fa-window-maximize fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm0 394c0 3.3-2.7 6-6 6H54c-3.3 0-6-2.7-6-6V192h416v234z"></path></svg>
-                <div class="gjs-block-label">${c.labels.container}</div>
-            `,
-            category: 'Layout',
-            draggable: true,
-            content: {
-              type: 'container',
-              classes: ['container']
-            }
-          });
-        }
-    
-        if (blocks.row) {
-          bm.add('row').set({
-            label: 
-            `
-                <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="window-maximize" class="svg-inline--fa fa-window-maximize fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm-16 160H64v-84c0-6.6 5.4-12 12-12h360c6.6 0 12 5.4 12 12v84z"></path></svg>
-                <div class="gjs-block-label">${c.labels.row}</div>
-            `,
-            category: 'Layout',
-            draggable: true,
-            content: {
-              type: 'row',
-              classes: ['row']
-            }
-          });
-        }
-    
-        if (blocks.column) {
-          bm.add('column').set({
-            label: `
-                <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="columns" class="svg-inline--fa fa-columns fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 32H48C21.49 32 0 53.49 0 80v352c0 26.51 21.49 48 48 48h416c26.51 0 48-21.49 48-48V80c0-26.51-21.49-48-48-48zM224 416H64V160h160v256zm224 0H288V160h160v256z"></path></svg>
-                <div class="gjs-block-label">${c.labels.column}</div>
-            `,
-            category: 'Layout',
-            draggable: true,
-            content: {
-              type: 'column',
-              classes: ['col']
-            }
-          });
-        }
-    */
+    bm.add('three-col-fl').set({
+      label: 'Fila de 3 bloques (Ancho completo)',
+      category: 'Estructura',
+      attributes: { class: 'fa fa-columns' },
+      content: '\n        <div class="container-fluid">\n          <div class="row">\n            <div class="col-4">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n            <div class="col-4">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n            </div>\n            <div class="col-4">\n            <p> Texto de demostraci\xF3n (puede agregar otros bloques aqu\xED) </p>\n          </div>\n          </div>\n        </div>\n    '
+    });
 
     if (blocks.column_break) {
       bm.add('column_break').set({
@@ -26614,91 +26587,12 @@ exports.default = function (editor) {
         }
       });
     }
-
-    if (blocks.media_object) {
-      bm.add('media_object').set({
-        label: c.labels.media_object,
-        category: 'Estructura',
-        attributes: { class: 'fa fa-columns' },
-        content: '<div class="media">\n                 <img class="mr-3" src="">\n                 <div class="media-body">\n                 <h5>Media heading</h5>\n                 <div>Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus.</div>\n                 </div>\n                 </div>'
-      });
-    }
   }
 
   // COMPONENTS
 
   if (cats.components) {
-    /*
-    if (blocks.alert) {
-      bm.add('alert', {
-        label: c.labels.alert,
-        category: 'Components',
-        attributes: { class: 'fa fa-exclamation-triangle' },
-        content: {
-          type: 'alert',
-          content: 'This is an alert—check it out!'
-        }
-      });
-    }
-     if (blocks.tabs) {
-      bm.add('tabs', {
-        label: `
-            <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="ellipsis-h" class="svg-inline--fa fa-ellipsis-h fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M328 256c0 39.8-32.2 72-72 72s-72-32.2-72-72 32.2-72 72-72 72 32.2 72 72zm104-72c-39.8 0-72 32.2-72 72s32.2 72 72 72 72-32.2 72-72-32.2-72-72-72zm-352 0c-39.8 0-72 32.2-72 72s32.2 72 72 72 72-32.2 72-72-32.2-72-72-72z"></path></svg>
-            <div class="gjs-block-label">${c.labels.tabs}</div>
-        `,
-        category: 'Components',
-        content: `
-            <ul class="nav nav-tabs" role="tablist">
-              <li class="nav-item">
-                <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Tab 1</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" id="profile-tab" data-toggle="tab" href="#profile" role="tab" aria-controls="profile" aria-selected="false">Tab 2</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" id="contact-tab" data-toggle="tab" href="#contact" role="tab" aria-controls="contact" aria-selected="false">Tab 3</a>
-              </li>
-            </ul>
-            <div class="tab-content">
-              <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab"></div>
-              <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab"></div>
-              <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab"></div>
-            </div>
-        `
-      });
-      bm.add('tabs-tab', {
-        label: `
-            <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="fas" data-icon="circle" class="svg-inline--fa fa-circle fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="-256 0 1024 1024"><path fill="currentColor" d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8z"></path></svg>
-            <div class="gjs-block-label">${c.labels.tab}</div>
-        `,
-        category: 'Components',
-        content: {
-          type: 'tabs-tab'
-        }
-      });
-      bm.add('tabs-tab-pane', {
-        label: `
-            <svg aria-hidden="true" width="24" height="50" focusable="false" data-prefix="far" data-icon="window-maximize" class="svg-inline--fa fa-window-maximize fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M464 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm0 394c0 3.3-2.7 6-6 6H54c-3.3 0-6-2.7-6-6V192h416v234z"></path></svg>
-            <div class="gjs-block-label">${c.labels.tabPane}</div>
-        `,
-        category: 'Components',
-        content: {
-          type: 'tabs-tab-pane'
-        }
-      });
-    }
-     if (blocks.badge) {
-      bm.add('badge', {
-        label: c.labels.badge,
-        category: 'Components',
-        attributes: { class: 'fa fa-certificate' },
-        content: {
-          type: 'badge',
-          content: 'New!'
-        }
-      });
-    }
-    */
+
     bm.add('card', {
       label: c.labels.card,
       category: 'Básicos',
@@ -26708,344 +26602,99 @@ exports.default = function (editor) {
       }
     });
 
-    /*
-        if (blocks.collapse) {
-          bm.add('collapse', {
-            label: c.labels.collapse,
-            category: 'Components',
-            attributes: { class: 'fa fa-compress' },
-            content: {
-              type: 'collapse'
-            }
-          });
-        }
-    
-        if (blocks.dropdown) {
-          bm.add('dropdown', {
-            label: c.labels.dropdown,
-            category: 'Components',
-            attributes: { class: 'fa fa-caret-down' },
-            content: {
-              type: 'dropdown'
-            }
-          });*/
-    /*bm.add('dropdown_menu', {
-      label: c.labels.dropdown_menu,
-      category: 'Components',
-      attributes: {class:'fa fa-caret-down'},
-      content: {
-        type: 'dropdown_menu'
+    // TYPOGRAPHY
+
+    if (cats.typography) {
+      if (blocks.text) {
+        bm.add('text', {
+          label: c.labels.text,
+          category: 'Textos',
+          attributes: { class: 'fa fa-font' },
+          content: {
+            type: 'text',
+            content: 'Doble clic para modificar el texto'
+          }
+        });
       }
-    });
-    bm.add('dropdown_item', {
-      label: c.labels.dropdown_item,
-      category: 'Components',
-      attributes: {class:'fa fa-link'},
-      content: {
-        type: 'dropdown_item'
+
+      if (blocks.header) {
+        bm.add('header', {
+          label: c.labels.header,
+          category: 'Textos',
+          attributes: { class: 'fa fa-header' },
+          content: {
+            type: 'header',
+            content: 'Encabezado'
+          }
+        });
       }
-    });*/
-  }
 
-  // TYPOGRAPHY
-
-  if (cats.typography) {
-    if (blocks.text) {
-      bm.add('text', {
-        label: c.labels.text,
-        category: 'Textos',
-        attributes: { class: 'fa fa-font' },
-        content: {
-          type: 'text',
-          content: 'Insert your text here'
-        }
-      });
+      if (blocks.paragraph) {
+        bm.add('paragraph', {
+          label: c.labels.paragraph,
+          category: 'Textos',
+          attributes: { class: 'fa fa-paragraph' },
+          content: {
+            type: 'paragraph',
+            content: 'Texto de relleno del párrafo.'
+          }
+        });
+      }
     }
 
-    if (blocks.header) {
-      bm.add('header', {
-        label: c.labels.header,
-        category: 'Textos',
-        attributes: { class: 'fa fa-header' },
-        content: {
-          type: 'header',
-          content: 'Bootstrap heading'
-        }
-      });
-    }
+    // BASIC
 
-    if (blocks.paragraph) {
-      bm.add('paragraph', {
-        label: c.labels.paragraph,
-        category: 'Textos',
-        attributes: { class: 'fa fa-paragraph' },
-        content: {
-          type: 'paragraph',
-          content: 'Texto de relleno del párrafo.'
-        }
-      });
-    }
-  }
+    if (cats.basic) {
+      if (blocks.link) {
+        bm.add('link', {
+          label: c.labels.link,
+          category: 'Básicos',
+          attributes: { class: 'fa fa-link' },
+          content: {
+            type: 'link',
+            content: 'Texto del Link'
+          }
+        });
+      }
 
-  // BASIC
+      if (blocks.image) {
+        // example of how we might include encoded image as default src. i like the idea but it mucks up the settings src field
+        //let default_src = 'data:image/png;base64,iVB\ORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAABlBMVEU\AAAD///+l2Z/dAAAAM0lEQVR4nGP4/5/h/1+G/58ZDrAz3D/McH8\yw83NDDeNGe4Ug9C9zwz3gVLMDA/A6P9/AFGGFyjOXZtQAAAAAEl\FTkSuQmCC'
+        bm.add('image', {
+          label: c.labels.image,
+          category: 'Básicos',
+          attributes: { class: 'fa fa-picture-o' },
+          content: {
+            type: 'image'
+          }
+        });
+      }
 
-  if (cats.basic) {
-    if (blocks.link) {
-      bm.add('link', {
-        label: c.labels.link,
+      bm.add('media_object').set({
+        label: 'Texto con imagen a la derecha',
         category: 'Básicos',
-        attributes: { class: 'fa fa-link' },
-        content: {
-          type: 'link',
-          content: 'Link text'
-        }
+        attributes: { class: 'fa fa-columns' },
+        content: '<div class="media">\n               <img class="mr-3" src="">\n               <div class="media-body">\n               <h5>Encabezado Bloque</h5>\n               <div>Cras sit amet nibh libero, in gravida nulla. Nulla vel metus scelerisque ante sollicitudin. Cras purus odio, vestibulum in vulputate at, tempus viverra turpis. Fusce condimentum nunc ac nisi vulputate fringilla. Donec lacinia congue felis in faucibus.</div>\n               </div>\n               </div>'
       });
     }
 
-    if (blocks.image) {
-      // example of how we might include encoded image as default src. i like the idea but it mucks up the settings src field
-      //let default_src = 'data:image/png;base64,iVB\ORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAABlBMVEU\AAAD///+l2Z/dAAAAM0lEQVR4nGP4/5/h/1+G/58ZDrAz3D/McH8\yw83NDDeNGe4Ug9C9zwz3gVLMDA/A6P9/AFGGFyjOXZtQAAAAAEl\FTkSuQmCC'
-      bm.add('image', {
-        label: c.labels.image,
-        category: 'Básicos',
-        attributes: { class: 'fa fa-picture-o' },
-        content: {
-          type: 'image'
-        }
+    // FORMS
+    if (blocks.button) {
+      bm.add('button', {
+        label: '\n      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">\n        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z" fill-rule="nonzero"></path>\n        <rect class="gjs-block-svg-path" x="4" y="11.5" width="16" height="1"></rect>\n      </svg>\n      <div class="gjs-block-label">Bot\xF3n Principal</div>',
+        category: 'Botones',
+        content: '<button class="btn btn-primary"> Texto Botón </button>'
       });
     }
 
-    /*if (blocks.list) {
-      bm.add('list', {
-        label: c.labels.list,
-        category: 'Basic',
-        attributes: {class:'fa fa-list'},
-        content: {
-          type: 'list'
-        }
+    if (blocks.button) {
+      bm.add('button-danger', {
+        label: '\n      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">\n        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z" fill-rule="nonzero"></path>\n        <rect class="gjs-block-svg-path" x="4" y="11.5" width="16" height="1"></rect>\n      </svg>\n      <div class="gjs-block-label">Bot\xF3n Alerta</div>',
+        category: 'Botones',
+        content: '<button class="btn btn-danger"> Texto Botón </button>'
       });
-    }*/
+    }
   }
-
-  // FORMS
-  /*
-  if (blocks.form) {
-    bm.add('form', {
-      label: `
-      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path class="gjs-block-svg-path" d="M22,5.5 C22,5.2 21.5,5 20.75,5 L3.25,5 C2.5,5 2,5.2 2,5.5 L2,8.5 C2,8.8 2.5,9 3.25,9 L20.75,9 C21.5,9 22,8.8 22,8.5 L22,5.5 Z M21,8 L3,8 L3,6 L21,6 L21,8 Z" fill-rule="nonzero"></path>
-        <path class="gjs-block-svg-path" d="M22,10.5 C22,10.2 21.5,10 20.75,10 L3.25,10 C2.5,10 2,10.2 2,10.5 L2,13.5 C2,13.8 2.5,14 3.25,14 L20.75,14 C21.5,14 22,13.8 22,13.5 L22,10.5 Z M21,13 L3,13 L3,11 L21,11 L21,13 Z" fill-rule="nonzero"></path>
-        <rect class="gjs-block-svg-path" x="2" y="15" width="10" height="3" rx="0.5"></rect>
-      </svg>
-      <div class="gjs-block-label">${c.labels.form}</div>`,
-      category: 'Forms',
-      content: `
-        <form>
-          <div class="form-group">
-            <label>Name</label>
-            <input placeholder="Type here your name" class="form-control"/>
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" placeholder="Type here your email" class="form-control"/>
-          </div>
-          <div class="form-check">
-            <input type="checkbox" class="form-check-input" value="M">
-            <label class="form-check-label">M</label>
-          </div>
-          <div class="form-check">
-            <input type="checkbox" class="form-check-input" value="F">
-            <label class="form-check-label">F</label>
-          </div>
-          <div class="form-group">
-            <label>Message</label>
-            <textarea class="form-control"></textarea>
-          </div>
-          <div class="form-group">
-            <button type="submit" class="btn btn-primary">Send</button>
-          </div>
-        </form>
-      `,
-    });
-  }
-  */
-
-  /*
-  if (blocks.input) {
-    bm.add('input', {
-      label: `
-      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z"></path>
-        <polygon class="gjs-block-svg-path" points="4 10 5 10 5 14 4 14"></polygon>
-      </svg>
-      <div class="gjs-block-label">${c.labels.input}</div>`,
-      category: 'Forms',
-      content: '<input class="form-control"/>',
-    });
-    bm.add('file-input', {
-      label: `
-            <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z"></path>
-              <polygon class="gjs-block-svg-path" points="4 10 5 10 5 14 4 14"></polygon>
-            </svg>
-            <div class="gjs-block-label">${c.labels.file_input}</div>
-        `,
-      category: 'Forms',
-      content: `<input type="file" class="form-control-file" id="exampleFormControlFile1">`
-    });
-  }
-   if (blocks.form_group_input) {
-    bm.add('form_group_input', {
-      label: `
-      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z"></path>
-        <polygon class="gjs-block-svg-path" points="4 10 5 10 5 14 4 14"></polygon>
-      </svg>
-      <div class="gjs-block-label">${c.labels.form_group_input}</div>`,
-      category: 'Forms',
-      content: `
-      <div class="form-group">
-        <label>Name</label>
-        <input placeholder="Type here your name" class="form-control"/>
-      </div>
-      `,
-    });
-  }
-   if (blocks.input_group) {
-    bm.add('input_group', {
-      label: `
-      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z"></path>
-        <polygon class="gjs-block-svg-path" points="4 10 5 10 5 14 4 14"></polygon>
-      </svg>
-      <div class="gjs-block-label">${c.labels.input_group}</div>`,
-      category: 'Forms',
-      content: `
-      <div class="input-group">
-        <div class="input-group-prepend">
-          <span class="input-group-text">$</span>
-        </div>
-        <input type="text" class="form-control" aria-label="Amount (to the nearest dollar)">
-        <div class="input-group-append">
-          <span class="input-group-text">.00</span>
-        </div>
-      </div>
-      `,
-    });
-  }
-   if (blocks.textarea) {
-    bm.add('textarea', {
-      label: `
-      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path class="gjs-block-svg-path" d="M22,7.5 C22,6.6 21.5,6 20.75,6 L3.25,6 C2.5,6 2,6.6 2,7.5 L2,16.5 C2,17.4 2.5,18 3.25,18 L20.75,18 C21.5,18 22,17.4 22,16.5 L22,7.5 Z M21,17 L3,17 L3,7 L21,7 L21,17 Z"></path>
-        <polygon class="gjs-block-svg-path" points="4 8 5 8 5 12 4 12"></polygon>
-        <polygon class="gjs-block-svg-path" points="19 7 20 7 20 17 19 17"></polygon>
-        <polygon class="gjs-block-svg-path" points="20 8 21 8 21 9 20 9"></polygon>
-        <polygon class="gjs-block-svg-path" points="20 15 21 15 21 16 20 16"></polygon>
-      </svg>
-      <div class="gjs-block-label">${c.labels.textarea}</div>`,
-      category: 'Forms',
-      content: '<textarea class="form-control"></textarea>',
-    });
-  }
-   if (blocks.select) {
-    bm.add('select', {
-      label: `
-      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z" fill-rule="nonzero"></path>
-        <polygon class="gjs-block-svg-path" transform="translate(18.500000, 12.000000) scale(1, -1) translate(-18.500000, -12.000000) " points="18.5 11 20 13 17 13"></polygon>
-        <rect class="gjs-block-svg-path" x="4" y="11.5" width="11" height="1"></rect>
-      </svg>
-      <div class="gjs-block-label">${c.labels.select}</div>`,
-      category: 'Forms',
-      content: `<select class="form-control">
-        ${c.labels.select_option ? `<option value="">${c.labels.select_option}</option>` : ''}
-        <option value="1">${c.labels.option} 1</option>
-        </select>`,
-    });
-  }
-  */
-  if (blocks.button) {
-    bm.add('button', {
-      label: '\n      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">\n        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z" fill-rule="nonzero"></path>\n        <rect class="gjs-block-svg-path" x="4" y="11.5" width="16" height="1"></rect>\n      </svg>\n      <div class="gjs-block-label">Bot\xF3n Principal</div>',
-      category: 'Botones',
-      content: '<button class="btn btn-primary"> Texto Botón </button>'
-    });
-  }
-
-  if (blocks.button) {
-    bm.add('button-danger', {
-      label: '\n      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">\n        <path class="gjs-block-svg-path" d="M22,9 C22,8.4 21.5,8 20.75,8 L3.25,8 C2.5,8 2,8.4 2,9 L2,15 C2,15.6 2.5,16 3.25,16 L20.75,16 C21.5,16 22,15.6 22,15 L22,9 Z M21,15 L3,15 L3,9 L21,9 L21,15 Z" fill-rule="nonzero"></path>\n        <rect class="gjs-block-svg-path" x="4" y="11.5" width="16" height="1"></rect>\n      </svg>\n      <div class="gjs-block-label">Bot\xF3n Alerta</div>',
-      category: 'Botones',
-      content: '<button class="btn btn-danger"> Texto Botón </button>'
-    });
-  }
-
-  /*
-  if (blocks.button_group) {
-    bm.add('button_group', {
-      label: c.labels.button_group,
-      category: 'Forms',
-      attributes: {class:'fa fa-link'},
-      content: {
-        type: 'button_group'
-      }
-    });
-  }
-   if (blocks.button_toolbar) {
-    bm.add('button_toolbar', {
-      label: c.labels.button_toolbar,
-      category: 'Forms',
-      attributes: {class:'fa fa-link'},
-      content: {
-        type: 'button_toolbar'
-      }
-    });
-  }
-   if (blocks.label) {
-    bm.add('label', {
-      label: `
-      <svg class="gjs-block-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path class="gjs-block-svg-path" d="M22,11.875 C22,11.35 21.5,11 20.75,11 L3.25,11 C2.5,11 2,11.35 2,11.875 L2,17.125 C2,17.65 2.5,18 3.25,18 L20.75,18 C21.5,18 22,17.65 22,17.125 L22,11.875 Z M21,17 L3,17 L3,12 L21,12 L21,17 Z" fill-rule="nonzero"></path>
-        <rect class="gjs-block-svg-path" x="2" y="5" width="14" height="5" rx="0.5"></rect>
-        <polygon class="gjs-block-svg-path" fill-rule="nonzero" points="4 13 5 13 5 16 4 16"></polygon>
-      </svg>
-      <div class="gjs-block-label">${c.labels.label}</div>`,
-      category: 'Forms',
-      content: '<label>Label</label>',
-    });
-  }
-   if (blocks.checkbox) {
-    bm.add('checkbox', {
-      label: c.labels.checkbox,
-      attributes: {class:'fa fa-check-square'},
-      category: 'Forms',
-      content: `
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="" id="defaultCheck1">
-          <label class="form-check-label" for="defaultCheck1">
-            Default checkbox
-          </label>
-        </div>
-      `,
-    });
-  }
-   if (blocks.radio) {
-    bm.add('radio', {
-      label: c.labels.radio,
-      attributes: {class:'fa fa-dot-circle-o'},
-      category: 'Forms',
-      content: `
-        <div class="form-check">
-          <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1" checked>
-          <label class="form-check-label" for="exampleRadios1">
-            Default radio
-          </label>
-        </div>
-      `,
-    });
-  }
-  */
 };
 
 /***/ }),
@@ -27259,27 +26908,27 @@ exports.default = function (editor) {
               options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(contexts_w_white.map(function (v) {
                 return { value: 'text-' + v, name: _underscore4.default.capitalize(v) };
               }))),
-              label: 'Text color'
+              label: 'Color de texto'
             }, {
               type: 'class_select',
               options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(contexts_w_white.map(function (v) {
                 return { value: 'bg-' + v, name: _underscore4.default.capitalize(v) };
               }))),
-              label: 'Background color'
+              label: 'Color fondo'
             }, {
               type: 'class_select',
               options: [{ value: '', name: 'Default' }, { value: 'border', name: 'Full' }, { value: 'border-top-0', name: 'No top' }, { value: 'border-right-0', name: 'No right' }, { value: 'border-bottom-0', name: 'No bottom' }, { value: 'border-left-0', name: 'No left' }, { value: 'border-0', name: 'None' }],
-              label: 'Border width'
+              label: 'Ancho borde'
             }, {
               type: 'class_select',
               options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(contexts_w_white.map(function (v) {
                 return { value: 'border border-' + v, name: _underscore4.default.capitalize(v) };
               }))),
-              label: 'Border color'
+              label: 'Color borde'
             }, {
               type: 'class_select',
               options: [{ value: '', name: 'Default' }, { value: 'rounded', name: 'Rounded' }, { value: 'rounded-top', name: 'Rounded top' }, { value: 'rounded-right', name: 'Rounded right' }, { value: 'rounded-bottom', name: 'Rounded bottom' }, { value: 'rounded-left', name: 'Rounded left' }, { value: 'rounded-circle', name: 'Circle' }, { value: 'rounded-0', name: 'Square' }],
-              label: 'Border radius'
+              label: 'Redondeado borde'
             }, {
               type: 'text',
               label: 'ID',
@@ -27287,8 +26936,8 @@ exports.default = function (editor) {
               placeholder: 'my_element'
             }, {
               type: 'text',
-              label: 'Title',
-              name: 'title',
+              label: 'Título',
+              name: 'Título',
               placeholder: 'My Element'
             }] //.concat(defaultModel.prototype.defaults.traits)
           }),
@@ -27333,7 +26982,7 @@ exports.default = function (editor) {
       domc.addType('text', {
         model: defaultModel.extend({
           defaults: Object.assign({}, defaultModel.prototype.defaults, {
-            'custom-name': 'Text',
+            'custom-name': 'Div',
             tagName: 'div',
             droppable: true,
             editable: true
@@ -27390,42 +27039,6 @@ exports.default = function (editor) {
       imageModel = imageType.model;
       imageView = imageType.view;
     }
-
-    // Basic
-
-    /*if (blocks.list) {
-      domc.addType('list', {
-        model: defaultModel.extend({
-          defaults: Object.assign({}, defaultModel.prototype.defaults, {
-            'custom-name': 'List',
-            tagName: 'ul',
-            resizable: 1,
-            traits: [
-              {
-                type: 'select',
-                options: [
-                  {value: 'ul', name: 'No'},
-                  {value: 'ol', name: 'Yes'}
-                ],
-                label: 'Ordered?',
-                name: 'tagName',
-                changeProp: 1
-              }
-            ].concat(defaultModel.prototype.defaults.traits)
-          })
-        }, {
-          isComponent: function(el) {
-            if(el && ['UL','OL'].includes(el.tagName)) {
-              return {type: 'list'};
-            }
-          }
-        }),
-        view: defaultView
-      });
-    }*/
-
-    /*if (blocks.description_list) {
-    }*/
   }
 
   // LAYOUT
@@ -27444,7 +27057,7 @@ exports.default = function (editor) {
             traits: [{
               type: 'class_select',
               options: [{ value: 'container', name: 'Fixed' }, { value: 'container-fluid', name: 'Fluid' }],
-              label: 'Width'
+              label: 'Ancho'
             }].concat(defaultModel.prototype.defaults.traits)
           })
         }, {
@@ -27575,7 +27188,7 @@ exports.default = function (editor) {
       domc.addType('column_break', {
         model: defaultModel.extend({
           defaults: Object.assign({}, defaultModel.prototype.defaults, {
-            'custom-name': 'Column Break',
+            'custom-name': 'Salto de bloques',
             tagName: 'div',
             classes: ['w-100']
           })
@@ -27612,7 +27225,7 @@ exports.default = function (editor) {
       domc.addType('media_body', {
         model: defaultModel.extend({
           defaults: Object.assign({}, defaultModel.prototype.defaults, {
-            'custom-name': 'Media Body',
+            'custom-name': 'Cuerpo Objeto',
             tagName: 'div',
             classes: ['media-body']
           })
@@ -27632,81 +27245,6 @@ exports.default = function (editor) {
 
   if (cats.components) {
 
-    /*
-    // Alert
-     if (blocks.alert) {
-      domc.addType('alert', {
-        model: textModel.extend({
-          defaults: Object.assign({}, textModel.prototype.defaults, {
-            'custom-name': 'Alert',
-            tagName: 'div',
-            classes: ['alert'],
-            traits: [
-              {
-                type: 'class_select',
-                options: [
-                  {value: '', name: 'None'},
-                  ... contexts.map(function(v) { return {value: 'alert-'+v, name: _s.capitalize(v)} })
-                ],
-                label: 'Context'
-              }
-            ].concat(textModel.prototype.defaults.traits)
-          })
-        }, {
-          isComponent(el) {
-            if(el && el.classList && el.classList.contains('alert')) {
-              return {type: 'alert'};
-            }
-          }
-        }),
-        view: textView
-      });
-    }
-     if (blocks.tabs) {
-      TabsNavigation(domc, config);
-      Tab(domc, config);
-      TabsPanes(domc, config);
-      TabPane(domc, config);
-    }
-     // Badge
-     if (blocks.badge) {
-      domc.addType('badge', {
-        model: textModel.extend({
-          defaults: Object.assign({}, textModel.prototype.defaults, {
-            'custom-name': 'Badge',
-            tagName: 'span',
-            classes: ['badge'],
-            traits: [
-              {
-                type: 'class_select',
-                options: [
-                  {value: '', name: 'None'},
-                  ... contexts.map(function(v) { return {value: 'badge-'+v, name: _s.capitalize(v)} })
-                ],
-                label: 'Context'
-              },
-              {
-                type: 'class_select',
-                options: [
-                  {value: '', name: 'Default'},
-                  {value: 'badge-pill', name: 'Pill'},
-                ],
-                label: 'Shape'
-              }
-            ].concat(textModel.prototype.defaults.traits)
-          })
-        }, {
-          isComponent(el) {
-            if(el && el.classList && el.classList.contains('badge')) {
-              return {type: 'badge'};
-            }
-          }
-        }),
-        view: textView
-      });
-    }
-    */
-
     // Card
 
     if (blocks.card) {
@@ -27717,27 +27255,27 @@ exports.default = function (editor) {
             classes: ['card'],
             traits: [{
               type: 'checkbox',
-              label: 'Image Top',
+              label: 'Imagen superior',
               name: 'card-img-top',
               changeProp: 1
             }, {
               type: 'checkbox',
-              label: 'Header',
+              label: 'Encabezado',
               name: 'card-header',
               changeProp: 1
             }, {
               type: 'checkbox',
-              label: 'Image',
+              label: 'Imagen',
               name: 'card-img',
               changeProp: 1
             }, {
               type: 'checkbox',
-              label: 'Image Overlay',
+              label: 'Imagen',
               name: 'card-img-overlay',
               changeProp: 1
             }, {
               type: 'checkbox',
-              label: 'Body',
+              label: 'Cuerpo',
               name: 'card-body',
               changeProp: 1
             }, {
@@ -27747,7 +27285,7 @@ exports.default = function (editor) {
               changeProp: 1
             }, {
               type: 'checkbox',
-              label: 'Image Bottom',
+              label: 'Image Pie',
               name: 'card-img-bottom',
               changeProp: 1
             }].concat(defaultModel.prototype.defaults.traits)
@@ -27811,7 +27349,7 @@ exports.default = function (editor) {
                   type: 'header',
                   tagName: 'h4',
                   classes: ['card-title'],
-                  content: 'Titulo'
+                  content: 'Título'
                 });
                 comp_children.add({
                   type: 'text',
@@ -27825,13 +27363,13 @@ exports.default = function (editor) {
                   type: 'header',
                   tagName: 'h4',
                   classes: ['card-title'],
-                  content: 'Title'
+                  content: 'Título'
                 });
                 comp_children.add({
                   type: 'header',
                   tagName: 'h6',
                   classes: ['card-subtitle', 'text-muted', 'mb-2'],
-                  content: 'Subtitle'
+                  content: 'Subtitulo'
                 });
                 comp_children.add({
                   type: 'text',
@@ -28033,12 +27571,12 @@ exports.default = function (editor) {
       domc.addType('header', {
         model: textModel.extend({
           defaults: Object.assign({}, textModel.prototype.defaults, {
-            'custom-name': 'Header',
+            'custom-name': 'Encabezado',
             tagName: 'h1',
             traits: [{
               type: 'select',
               options: [{ value: 'h1', name: 'One (largest)' }, { value: 'h2', name: 'Two' }, { value: 'h3', name: 'Three' }, { value: 'h4', name: 'Four' }, { value: 'h5', name: 'Five' }, { value: 'h6', name: 'Six (smallest)' }],
-              label: 'Size',
+              label: 'Tamaño',
               name: 'tagName',
               changeProp: 1
             }, {
@@ -28157,17 +27695,17 @@ exports.default = function (dc, traits, contexts, sizes) {
                     })), _toConsumableArray(contexts.map(function (v) {
                         return { value: 'btn-outline-' + v, name: _underscore2.default.capitalize(v) + ' (Outline)' };
                     }))),
-                    label: 'Context'
+                    label: 'Contexto diseño'
                 }, {
                     type: 'class_select',
                     options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(Object.keys(sizes).map(function (k) {
                         return { value: 'btn-' + k, name: sizes[k] };
                     }))),
-                    label: 'Size'
+                    label: 'Tamaño'
                 }, {
                     type: 'class_select',
                     options: [{ value: '', name: 'Inline' }, { value: 'btn-block', name: 'Block' }],
-                    label: 'Width'
+                    label: 'Ancho'
                 }].concat(linkModel.prototype.defaults.traits)
             }),
             /*init2() {
@@ -28234,13 +27772,13 @@ exports.default = function (dc, traits, contexts, sizes) {
                     options: [{ value: '', name: 'Default' }].concat(_toConsumableArray(Object.keys(sizes).map(function (k) {
                         return { value: 'btn-group-' + k, name: sizes[k] };
                     }))),
-                    label: 'Size'
+                    label: 'Tamaño'
                 }, {
                     type: 'class_select',
                     options: [{ value: '', name: 'Horizontal' }, { value: 'btn-group-vertical', name: 'Vertical' }],
-                    label: 'Size'
+                    label: 'Tamaño'
                 }, {
-                    type: 'Text',
+                    type: 'Texto',
                     label: 'ARIA Label',
                     name: 'aria-label',
                     placeholder: 'A group of buttons'
@@ -28292,7 +27830,7 @@ exports.default = function (dc) {
                     role: 'toolbar'
                 },
                 traits: [{
-                    type: 'Text',
+                    type: 'Texto',
                     label: 'ARIA Label',
                     name: 'aria-label',
                     placeholder: 'A toolbar of button groups'
@@ -29749,28 +29287,28 @@ exports.default = function (editor) {
         command: 'set-device-xl',
         className: 'fa fa-desktop',
         text: 'XL',
-        attributes: { 'title': 'Extra Large' },
+        attributes: { Título: 'Extra Large' },
         active: 1
       }, {
         id: 'deviceLg',
         command: 'set-device-lg',
         className: 'fa fa-desktop',
-        attributes: { 'title': 'Large' }
+        attributes: { Título: 'Large' }
       }, {
         id: 'deviceMd',
         command: 'set-device-md',
         className: 'fa fa-tablet',
-        attributes: { 'title': 'Medium' }
+        attributes: { Título: 'Medium' }
       }, {
         id: 'deviceSm',
         command: 'set-device-sm',
         className: 'fa fa-mobile',
-        attributes: { 'title': 'Small' }
+        attributes: { Título: 'Small' }
       }, {
         id: 'deviceXs',
         command: 'set-device-xs',
         className: 'fa fa-mobile',
-        attributes: { 'title': 'Extra Small' }
+        attributes: { Título: 'Extra Small' }
       }]);
 
       commands.add('set-device-xs', {
@@ -29938,7 +29476,7 @@ var bSettings = exports.bSettings = function bSettings(editor) {
     classTab: 'nav-item'
   }, opts);
 
-  editor.addComponents('\n    <style>\n\n      /* Estilos generales */\n\n       .container,  .container-fluid,\n       .tab-pane,\n       .row,\n       .col,  [class^="col-"] {\n        min-height: 1.5rem !important;\n      }\n       .w-100 {\n        min-height: .25rem !important;\n        background-color: rgba(0,0,0,0.1);\n      }\n       img {\n        min-width: 25px;\n        min-height: 25px;\n        background-color: rgba(0,0,0,0.5);\n      }\n\n      /* Components */\n      \n       .btn-group,\n       .btn-toolbar {\n        padding-right: 1.5rem !important;\n        min-height: 1.5rem !important;\n      }\n       .card,\n       .card-group,  .card-deck,  .card-columns {\n        min-height: 1.5rem !important;\n      }\n       .collapse {\n        display: block !important;\n        min-height: 1.5rem !important;\n      }\n       .dropdown {\n        display: block !important;\n        min-height: 1.5rem !important;\n      }\n       .dropdown-menu {\n        min-height: 1.5rem !important;\n        display: block !important;\n      }\n\n      .row, .container {\n                min-height: 75px !important;\n      }\n      img {\n        max-width: 100%\n      }\n\n    </style>\n  ');
+  editor.addComponents('\n    <style>\n\n      img {\n        max-width: 100%\n      }\n\n    </style>\n  ');
 
   // Add components
   (0, _commands2.default)(editor, options);
@@ -29948,7 +29486,7 @@ var bSettings = exports.bSettings = function bSettings(editor) {
   (0, _devices2.default)(editor, options);
 
   // TODO Remove
-  //editor.on('load', () => editor.addComponents(`<div style="margin:0 100px; padding:25px;">Content loaded from the plugin</div>`))
+  editor.on('load', function () {});
 };
 
 /***/ }),
@@ -36731,6 +36269,163 @@ module.exports = _backbone2.default.View.extend({
 
 /***/ }),
 
+/***/ "./src/custom/blocks.js":
+/*!******************************!*\
+  !*** ./src/custom/blocks.js ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (editor) {
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+
+  editor.BlockManager.add('testBlock', {
+    label: 'Texto Centrado',
+    attributes: { class: 'gjs-fonts gjs-f-b1' },
+    type: 'div',
+    category: 'Básicos',
+    content: '<p style="padding-top:50px; padding-bottom:50px; text-align:center"> Doble clic para editar este texto </p> '
+  });
+
+  editor.BlockManager.add('testBlock2', {
+    label: 'Texto con imagen arriba',
+    attributes: { class: 'fa fa-picture-o' },
+    type: 'div',
+    category: 'Básicos',
+    content: '\n                      <style>\n\n              .img-top-demo {\n                  width: 100%;\n                  height: 150px;\n                  text-align: center;\n                  padding-top: 50px;\n                  background-image: url(\'https://ak8.picdn.net/shutterstock/videos/31579318/thumb/1.jpg\');\n                  color: white;\n              }\n\n              .texto-bottom {\n                padding-top: 25px;\n                  text-align: center;\n                  font-weight: bold;\n              }\n\n              </style>\n\n              <div class="img-top-demo"> <h1> Editor en tiempo real</h1> </div>\n\n              <div class="texto-bottom">\n              <p> La finalidad de esta herramienta es aprender HTML y CSS por la pr\xE1ctica, pudiendo visualizar los elementos en tiempo real </p>\n              <p> A la derecha podr\xE1s visualizar distintas opciones para utilizar este editor </p>\n              </div>'
+  });
+};
+
+/***/ }),
+
+/***/ "./src/custom/commands.js":
+/*!********************************!*\
+  !*** ./src/custom/commands.js ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (editor, config) {
+  var cmdm = editor.Commands;
+  var storageManager = editor.StorageManager;
+  var userId = localStorage.getItem('user_web_id');
+  var db = firebase.firestore();
+  cmdm.add('clean-all', {
+    run: function run(editor, sender) {
+      sender && sender.set('active', false);
+      if (confirm('Estás seguro de eliminar todo?')) {
+        var comps = editor.DomComponents.clear();
+        setTimeout(function () {
+          localStorage.clear();
+        }, 0);
+      }
+    }
+  });
+
+  cmdm.add('save-firestore', {
+    run: function run() {
+      console.log('saved');
+      var htmldata = editor.getHtml();
+      var cssdata = editor.getCss();
+      storageManager.store({ html: htmldata, css: cssdata });
+      var modal = editor.Modal;
+      modal.open({
+        title: 'Guardado correctamente con el id: ' + userId,
+        content: 'Utilizar este id desde cualquier dispositivo para cargar tu web'
+      });
+    }
+  });
+
+  cmdm.add('load-firestore', {
+    run: function run() {
+      var id = prompt('Ingrese ID a cargar:');
+      if (id != null) {
+        localStorage.setItem('user_web_id', id);
+
+        window.location.reload();
+      }
+    }
+  });
+
+  cmdm.add('show_info_id', {
+    run: function run() {
+      var modal = editor.Modal;
+      modal.open({
+        title: 'Tu Id es ' + userId,
+        content: 'El mismo te permitirá restaurar tu progreso desde cualquier lugar utilizando la herramienta "Cargar"'
+      });
+    }
+  });
+};
+
+/***/ }),
+
+/***/ "./src/custom/index.js":
+/*!*****************************!*\
+  !*** ./src/custom/index.js ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _commands = __webpack_require__(/*! ./commands */ "./src/custom/commands.js");
+
+var _commands2 = _interopRequireDefault(_commands);
+
+var _templates = __webpack_require__(/*! ../templates */ "./src/templates/index.js");
+
+var _templates2 = _interopRequireDefault(_templates);
+
+var _blocks = __webpack_require__(/*! ./blocks */ "./src/custom/blocks.js");
+
+var _blocks2 = _interopRequireDefault(_blocks);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _require = __webpack_require__(/*! ../bootstrap */ "./src/bootstrap/index.js"),
+    bSettings = _require.bSettings;
+
+exports.default = function (editor) {
+  var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+  var storageManager = editor.StorageManager;
+
+  (0, _commands2.default)(editor, opts);
+  bSettings(editor, opts);
+  (0, _blocks2.default)(editor, opts);
+
+  storageManager.setAutosave(true);
+
+  editor.on('load', function () {
+    storageManager.load(['html', 'css'], function (res) {
+      editor.setComponents(res['html']);
+    });
+  });
+};
+
+/***/ }),
+
 /***/ "./src/device_manager/config/config.js":
 /*!*********************************************!*\
   !*** ./src/device_manager/config/config.js ***!
@@ -37096,7 +36791,7 @@ module.exports = {
 
   wrapperId: 'wrapper',
 
-  wrapperName: 'Body',
+  wrapperName: 'Cuerpo',
 
   // Default wrapper configuration
   wrapper: {
@@ -38699,7 +38394,7 @@ var Component = Backbone.Model.extend(_Styleable2.default).extend({
   getName: function getName() {
     var customName = this.get('name') || this.get('custom-name');
     var tag = this.get('tagName');
-    tag = tag == 'div' ? 'box' : tag;
+    tag = tag == 'div' ? 'caja' : tag;
     var name = this.get('type') || tag;
     name = name.charAt(0).toUpperCase() + name.slice(1);
     return customName || name;
@@ -39826,7 +39521,8 @@ module.exports = Component.extend({
   defaults: _extends({}, Component.prototype.defaults, {
     type: 'text',
     droppable: false,
-    editable: true
+    editable: true,
+    'custom-name': 'Texto'
   }),
 
   toHTML: function toHTML() {
@@ -42793,10 +42489,10 @@ module.exports = {
   // and sets a default background color of white. This CSS is desired in most cases.
   // use this property if you wish to overwrite the base CSS to your own CSS. This is most
   // useful if for example your template is not based off a document with 0 as body margin.
-  baseCss: '\n    * {\n      box-sizing: border-box;\n    }\n    html, body, #wrapper {\n      min-height: 100%;\n    }\n    body {\n      margin: 0;\n      height: 100%;\n      background-color: #fff\n    }\n    #wrapper {\n      overflow: auto;\n      overflow-x: hidden;\n    }\n\n    * ::-webkit-scrollbar-track {\n      background: rgba(0, 0, 0, 0.1)\n    }\n\n    * ::-webkit-scrollbar-thumb {\n      background: rgba(255, 255, 255, 0.2)\n    }\n\n    * ::-webkit-scrollbar {\n      width: 10px\n    }\n  ',
+  baseCss: '\n  \n\n    * {\n      box-sizing: border-box;\n    }\n    html, body, #wrapper {\n      min-height: 100%;\n    }\n    body {\n      margin: 0;\n      height: 100%;\n      background-color: #fff\n    }\n    #wrapper {\n      overflow: auto;\n      overflow-x: hidden;\n    }\n\n    * ::-webkit-scrollbar-track {\n      background: rgba(0, 0, 0, 0.1)\n    }\n\n    * ::-webkit-scrollbar-thumb {\n      background: rgba(255, 255, 255, 0.2)\n    }\n\n    * ::-webkit-scrollbar {\n      width: 10px\n    }\n  ',
 
   // CSS that could only be seen (for instance, inside the code viewer)
-  protectedCss: '* { box-sizing: border-box; } body {margin: 0;}',
+  protectedCss: '',
 
   // CSS for the iframe which containing the canvas, useful if you need to custom something inside
   // (eg. the style of the selected component)
@@ -42812,7 +42508,7 @@ module.exports = {
   allowScripts: 0,
 
   // If true render a select of available devices
-  showDevices: 1,
+  showDevices: 0,
 
   // When enabled, on device change media rules won't be created
   devicePreviewMode: 0,
@@ -42935,15 +42631,11 @@ module.exports = {
       open: false,
       buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom']
     }, {
-      name: 'Flex',
-      open: false,
-      buildProps: ['flex-direction', 'flex-wrap', 'justify-content', 'align-items', 'align-content', 'order', 'flex-basis', 'flex-grow', 'flex-shrink', 'align-self']
-    }, {
-      name: 'Dimension',
+      name: 'Dimensiones',
       open: false,
       buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding']
     }, {
-      name: 'Typography',
+      name: 'Texto',
       open: false,
       buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align', 'text-shadow'],
       properties: [{
@@ -42951,7 +42643,7 @@ module.exports = {
         list: [{ value: 'left', className: 'fa fa-align-left' }, { value: 'center', className: 'fa fa-align-center' }, { value: 'right', className: 'fa fa-align-right' }, { value: 'justify', className: 'fa fa-align-justify' }]
       }]
     }, {
-      name: 'Decorations',
+      name: 'Decoraciones',
       open: false,
       buildProps: ['border-radius-c', 'background-color', 'border-radius', 'border', 'box-shadow', 'background']
     }, {
@@ -42968,7 +42660,7 @@ module.exports = {
   traitManager: {},
 
   // Texts
-  textViewCode: 'Code',
+  textViewCode: 'Código',
 
   // Keep unused styles within the editor
   keepUnusedStyles: 0,
@@ -44626,14 +44318,11 @@ var _plugin_manager = __webpack_require__(/*! ./plugin_manager */ "./src/plugin_
 
 var _plugin_manager2 = _interopRequireDefault(_plugin_manager);
 
-var _templates = __webpack_require__(/*! ./templates */ "./src/templates/index.js");
+var _custom = __webpack_require__(/*! ./custom */ "./src/custom/index.js");
 
-var _templates2 = _interopRequireDefault(_templates);
+var _custom2 = _interopRequireDefault(_custom);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var _require = __webpack_require__(/*! ./bootstrap */ "./src/bootstrap/index.js"),
-    bSettings = _require.bSettings;
 
 (0, _polyfills2.default)();
 
@@ -44679,13 +44368,51 @@ module.exports = function () {
     init: function init() {
       var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
+
+      var localId = localStorage.getItem('user_web_id');
+      if (!localId) {
+        var timestamp = Math.round(new Date().getTime() / 1000);
+        localStorage.setItem('user_web_id', timestamp);
+        localId = String(timestamp);
+      }
+      console.log(localId);
+
+      config.showOffsets = 1;
+      config.noticeOnUnload = 0;
+      config.container = '#gjs';
+      config.height = '100%';
+      config.fromElement = true;
+      config.storageManager = { autoload: 0 };
+      config.showDevices = false;
+      config.storageManager = { type: 'firestore' };
+      config.plugins = ['grapesjs-firestore', 'grapesjs-plugin-export'], config.pluginsOpts = {
+        'grapesjs-firestore': {
+          docId: localId,
+          apiKey: 'AIzaSyAsx0BigxXLRmLzYTuVmdF5eh2NFon2hC0',
+          authDomain: 'cursomm-a0549.firebaseapp.com',
+          projectId: 'cursomm-a0549'
+        },
+        'grapesjs-plugin-export': {
+          btnLabel: 'Descargar mi web',
+          filenamePfx: 'misitio',
+          root: {
+            css: {
+              'style.css': function styleCss(ed) {
+                return ed.getCss();
+              }
+            },
+            'index.html': function indexHtml(ed) {
+              return '\n            <!doctype html>\n              <html lang="en">\n                <head>\n                  <meta charset="utf-8">\n                  <link rel="stylesheet" href=\'./css/style.css\'>\n                  <link rel=\'stylesheet\' href=\'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css\' />\n                </head>\n                <body>' + ed.getHtml() + '</body>\n              <html>\n            ';
+            }
+          }
+        }
+      };
+
       var els = config.container;
       if (!els) throw new Error("'container' is required");
       config = _extends({}, defaultConfig, config);
       config.el = (0, _underscore.isElement)(els) ? els : document.querySelector(els);
       var editor = new _editor2.default(config).init();
-      bSettings(editor, config);
-      (0, _templates2.default)(editor, config);
 
       // Load plugins
       config.plugins.forEach(function (pluginId) {
@@ -44712,6 +44439,8 @@ module.exports = function () {
       // is a good point to load stuff like components, css rules, etc.
       editor.getModel().loadOnStart();
       config.autorender && editor.render();
+      (0, _custom2.default)(editor, config);
+
       editors.push(editor);
 
       return editor;
@@ -46148,6 +45877,9 @@ var ola = 'open-layers';
 var obl = 'open-blocks';
 var ful = 'fullscreen';
 var prv = 'preview';
+var svf = 'save-firestore';
+var ldf = 'load-firestore';
+var userId = localStorage.getItem('user_web_id');
 
 module.exports = {
   stylePrefix: 'pn-',
@@ -46155,7 +45887,26 @@ module.exports = {
   // Default panels fa-sliders for features
   defaults: [{
     id: 'commands',
-    buttons: [{}]
+    buttons: [{
+      active: false,
+      id: svf,
+      className: 'fa fa-save',
+      command: svf,
+      attributes: { title: 'Guardar' }
+    }, {
+      active: false,
+      id: ldf,
+      className: 'fa fa-cloud-download',
+      command: ldf,
+      attributes: { title: 'Cargar' }
+    }, {
+      active: false,
+      command: 'show_info_id',
+      id: 'asddas',
+      className: 'info_data',
+      label: 'Tu id es ' + userId,
+      togglable: false
+    }]
   }, {
     id: 'options',
     buttons: [{
@@ -46165,6 +45916,35 @@ module.exports = {
       command: swv,
       context: swv,
       attributes: { title: 'Gúias de diseño' }
+    }, {
+      id: prv,
+      className: 'fa fa-eye',
+      command: prv,
+      context: prv,
+      attributes: { title: 'Vista Previa' }
+    }, {
+      id: ful,
+      className: 'fa fa-arrows-alt',
+      command: ful,
+      context: ful,
+      attributes: { title: 'Pantalla Completa' }
+    }, {
+      id: expt,
+      className: 'fa fa-html5',
+      command: expt,
+      context: expt,
+      attributes: { title: 'Ver código final' }
+    }, {
+      id: expt,
+      className: 'fa fa-download',
+      command: 'gjs-export-zip',
+      context: expt,
+      attributes: { title: 'Exportar sitio' }
+    }, {
+      id: 'clean-all',
+      className: 'fa fa-trash icon-blank',
+      command: 'clean-all',
+      attributes: { title: 'Eliminar todo' }
     }]
   }, {
     id: 'views',
@@ -46180,7 +45960,14 @@ module.exports = {
       className: 'fa fa-cog',
       command: otm,
       togglable: 0,
-      attributes: { title: 'Settings' }
+      attributes: { title: 'Configuración' }
+    }, {
+      id: ola,
+      className: 'fa fa-align-justify',
+      command: ola,
+      active: false,
+      togglable: 0,
+      attributes: { title: 'Estructura de Etiquetas' }
     }, {
       id: osm,
       className: 'fa fa-paint-brush',
@@ -50312,7 +50099,23 @@ module.exports = __webpack_require__(/*! backbone */ "./node_modules/backbone/ba
 module.exports = {
   stylePrefix: 'sm-',
 
-  sectors: [],
+  sectors: [{
+    name: 'General',
+    open: false,
+    buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom']
+  }, {
+    name: 'Tamaño',
+    open: false,
+    buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding']
+  }, {
+    name: 'Fuente',
+    open: false,
+    buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-shadow']
+  }, {
+    name: 'Decoraciones',
+    open: false,
+    buildProps: ['border-radius-c', 'background-color', 'border-radius', 'border', 'box-shadow', 'background']
+  }],
 
   // Specify the element to use as a container, string (query) or HTMLElement
   // With the empty value, nothing will be rendered
@@ -59864,7 +59667,7 @@ module.exports = _backbone2.default.View.extend({
     });
   },
   isTextableActive: function isTextableActive(src, trg) {
-    return src && src.get('textable') && trg && trg.is('text');
+    return src && src.get && src.get('textable') && trg && trg.is('text');
   },
   disableTextable: function disableTextable() {
     var activeTextModel = this.activeTextModel;

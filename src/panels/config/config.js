@@ -86,6 +86,12 @@ module.exports = {
           className: 'fa fa-trash icon-blank',
           command: 'clean-all',
           attributes: { title: 'Eliminar todo' }
+        },
+        {
+          id: 'open-site',
+          className: 'fa fa-play icon-blank',
+          command: 'open-site',
+          attributes: { title: 'Ver Online!' }
         }
       ]
     },
