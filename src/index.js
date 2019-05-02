@@ -72,7 +72,7 @@ module.exports = (() => {
             docId: localId,
             apiKey: 'AIzaSyAsx0BigxXLRmLzYTuVmdF5eh2NFon2hC0',
             authDomain: 'cursomm-a0549.firebaseapp.com',
-            projectId: 'cursomm-a0549'
+            projectId: 'cursomm-a0549',
           },
           'grapesjs-plugin-export': {
             btnLabel: 'Descargar mi web',
@@ -96,8 +96,12 @@ module.exports = (() => {
           }
         });
 
+      
+
       const els = config.container;
       if (!els) throw new Error("'container' is required");
+
+      
       config = { ...defaultConfig, ...config };
       config.el = isElement(els) ? els : document.querySelector(els);
       const editor = new Editor(config).init();

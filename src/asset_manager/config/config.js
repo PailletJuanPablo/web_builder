@@ -1,3 +1,5 @@
+import {Spinner} from '../../custom/loader';
+
 module.exports = {
   // Default assets
   // eg. [
@@ -18,7 +20,7 @@ module.exports = {
   // Upload endpoint, set `false` to disable upload
   // upload: 'https://endpoint/upload/assets',
   // upload: false,
-  upload: 0,
+  upload: true,
 
   // The name used in POST to pass uploaded files
   uploadName: 'files',
@@ -34,7 +36,7 @@ module.exports = {
 
   // Allow uploading multiple files per request.
   // If disabled filename will not have '[]' appended
-  multiUpload: true,
+  multiUpload: false,
 
   // If true, tries to add automatically uploaded assets.
   // To make it work the server should respond with a JSON containing assets
@@ -71,10 +73,34 @@ module.exports = {
   //   var files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
   //   // ...send somewhere
   // }
-  uploadFile: '',
+  uploadFile: e => {
+
+    var file = e.dataTransfer ? e.dataTransfer.files[0] : e.target.files[0];
+
+    console.log(file);
+    if(file){
+      document.getElementById("custom_loader").style.display = "block";
+      document.getElementById("loader_text").style.display = "block";
+  
+      console.log(e)
+      uploadToFirebase(file).then((url) => {
+        editor.AssetManager.add(url);
+        document.getElementById("custom_loader").style.display = "none";
+        document.getElementById("loader_text").style.display = "none";
+  
+      }).catch((error) => {
+        document.getElementById("custom_loader").style.display = "none";
+        document.getElementById("loader_text").style.display = "none";
+        alert('Hubo un error subiendo la imagen');
+
+      });
+    }
+ 
+    // console.log(files)
+  },
 
   // In the absence of 'uploadFile' or 'upload' assets will be embedded as Base64
-  embedAsBase64: 1,
+  embedAsBase64: 0,
 
   // Handle the image url submit from the built-in 'Add image' form
   // @example
@@ -100,5 +126,36 @@ module.exports = {
   modalTitle: 'Seleccionar imagen',
 
   //Default placeholder for input
-  inputPlaceholder: 'http://path/to/the/image.jpg'
+  inputPlaceholder: 'Puedes escribir urls, como http://url/de/la/imagen.jpg'
+};
+
+
+const uploadToFirebase = file => {
+  return new Promise((resolve, reject) => {
+  // Get a reference to the storage service, which is used to create references in your storage bucket
+
+  // Create a storage reference from our storage service
+  var ref = firebase
+    .app()
+    .storage('gs://cursomm-a0549.appspot.com')
+    .ref();
+  //const ref = firebase.storage('gs://cursomm-a0549.appspot.com').ref();
+
+  const name = +new Date() + '-' + file.name;
+  const metadata = {
+    contentType: file.type
+  };
+
+  console.log(name);
+
+  const task = ref.child(name).put(file, metadata);
+  task
+    .then(snapshot => snapshot.ref.getDownloadURL())
+    .then(url => {
+      resolve(url)
+   //   console.log(url);
+    })
+    .catch((error) => reject(error));
+  })
+
 };

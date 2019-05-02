@@ -1,4 +1,3 @@
-
 export default (editor, config) => {
   const cmdm = editor.Commands;
   const storageManager = editor.StorageManager;
@@ -25,7 +24,12 @@ export default (editor, config) => {
       const modal = editor.Modal;
       modal.open({
         title: 'Guardado correctamente con el id: ' + userId,
-        content: 'Utilizar este id desde cualquier dispositivo para cargar tu web'
+        content:
+          'Utilizar este id desde cualquier dispositivo para cargar tu web. También podrás verla online en el siguiente link: <a style="color: white" target="_blank" href="http://cursodesarrolloweb.net/sitios/' +
+          userId +
+          '" >  http://cursodesarrolloweb.net/sitios/' +
+          userId +
+          '</a>'
       });
     }
   });
@@ -34,10 +38,22 @@ export default (editor, config) => {
     run: () => {
       const id = prompt('Ingrese ID a cargar:');
       if (id != null) {
-        localStorage.setItem('user_web_id', id);
-       
-        window.location.reload();
-      
+        const template = db.collection('templates').doc(id);
+
+        template
+          .get()
+          .then(function(doc) {
+            if (template.exists) {
+              localStorage.setItem('user_web_id', id);
+              window.location.reload();
+            } else {
+              alert('No existe una pagina registrada con ese id');
+            }
+          })
+          .catch(function(error) {
+            alert('Error extraño del server, intenta más tarde y por favor notificarme. Gracias!')
+            console.log('Error:', error);
+          });
       }
     }
   });
@@ -52,13 +68,20 @@ export default (editor, config) => {
     }
   });
 
-  cmdm.add('open-site', {
+  cmdm.add('add_custom_id', {
     run: () => {
-      window.open("http://cursodesarrolloweb.net/sitios/"+userId);
+      const modal = editor.Modal;
+      modal.open({
+        title: 'Establecer ID personalizado',
+        content: `Podes agregar un nuevo ID, la página se actualizará con el mismo. <input id="newId"> <button style="color: #fff;background-color: #007bff;border-color: #007bff" id="setNewId"> Establecer </button>`
+      });
     }
   });
 
 
-  
-
+  cmdm.add('open-site', {
+    run: () => {
+      window.open('http://cursodesarrolloweb.net/sitios/' + userId);
+    }
+  });
 };

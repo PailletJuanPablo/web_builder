@@ -62,7 +62,7 @@
         c = (r = i) && r.__esModule ? r : { default: r };
       t.default = c.default.plugins.add('grapesjs-firestore', function(e) {
         var t = arguments.length > 1 && void 0 !== arguments[1] ? arguments[1] : {},
-          n = o({ apiKey: '', authDomain: '', projectId: '', docId: 'gjs', collectionName: 'templates', enableOffline: !0, settings: {  } }, t),
+          n = o({ apiKey: '', storageBucket: '', authDomain: '', projectId: '', docId: 'gjs', collectionName: 'templates', enableOffline: !0, settings: {  } }, t),
           r = e.StorageManager,
           i = void 0,
           c = void 0,
@@ -72,6 +72,7 @@
           f = n.authDomain,
           p = n.projectId,
           d = n.settings,
+          st = n.storageBucket,
           l = function(e) {
             return r.onError('firestore', e.code || e);
           },
@@ -81,7 +82,7 @@
           j = function(e) {
             !(function(e) {
               if (s) return e(s);
-              firebase.initializeApp({ apiKey: u, authDomain: f, projectId: p });
+              firebase.initializeApp({ apiKey: u, authDomain: f, projectId: p, storageBucket: st });
               var t = firebase.firestore();
               t.settings(d);
               var r = function() {

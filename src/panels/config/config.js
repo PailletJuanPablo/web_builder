@@ -39,6 +39,12 @@ module.exports = {
           className: 'info_data',
           label: 'Tu id es ' + userId,
           togglable: false,
+        },
+        {
+          id: 'add_custom_id',
+          className: 'fa fa-edit ',
+          command: 'add_custom_id',
+          attributes: { title: 'Añadir nuevo ID!' }
         }
       ]
     },
@@ -93,6 +99,7 @@ module.exports = {
           command: 'open-site',
           attributes: { title: 'Ver Online!' }
         }
+        
       ]
     },
     {
@@ -107,21 +114,6 @@ module.exports = {
           attributes: { title: 'Bloques de Código' }
         },
         {
-          id: otm,
-          className: 'fa fa-cog',
-          command: otm,
-          togglable: 0,
-          attributes: { title: 'Configuración' }
-        },
-        {
-          id: ola,
-          className: 'fa fa-align-justify',
-          command: ola,
-          active: false,
-          togglable: 0,
-          attributes: { title: 'Estructura de Etiquetas' }
-        },
-        {
           id: osm,
           className: 'fa fa-paint-brush',
           command: osm,
@@ -134,9 +126,26 @@ module.exports = {
           attributes: { title: 'Modificar Código' },
           command: 'open-code',
           attributes: {
-            title: 'Editar Code'
+            title: 'Editar Código'
           }
+        },
+        {
+          id: ola,
+          className: 'fa fa-align-justify',
+          command: ola,
+          active: false,
+          togglable: 0,
+          attributes: { title: 'Estructura de Etiquetas' }
         }
+        /*
+        {
+          id: otm,
+          className: 'fa fa-cog',
+          command: otm,
+          togglable: 0,
+          attributes: { title: 'Configuración' }
+        },*/
+        
       ]
     }
   ],

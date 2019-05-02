@@ -22,7 +22,7 @@ import FileInput from "./components/FileInput";
 
 export default (editor, config = {}) => {
 
-  const img_src_default = 'https://dummyimage.com/450x250/999/222';
+  const img_src_default = 'https://www.agora-gallery.com/advice/wp-content/uploads/2015/10/image-placeholder-300x200.png';
 
   const contexts = [
     'primary', 'secondary',

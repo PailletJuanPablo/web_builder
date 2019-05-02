@@ -7,12 +7,17 @@
     <script src="./grapes.min.js"></script>
     <link rel="stylesheet" href="./css/code_editor.css" />
     <link rel="stylesheet" href="./css/templates.css" />
+    <link rel="stylesheet" href="./css/loader.css" />
 
     <script src="./js/code_editor.js"></script>
     <script src="./js/fire_export.js"></script>
+    <script src="./js/export_zip.js"></script>
+
 
     <script src="https://www.gstatic.com/firebasejs/5.8.4/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.8.4/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.9.1/firebase-storage.js"></script>
+
 
     <style>
       body,
@@ -24,56 +29,36 @@
   </head>
 
   <body>
+      <div id="loader_text"> Subiendo imagen... </div>
+    <div class="loading" id="custom_loader"></div>
     <div id="gjs" style="height:0px; overflow:hidden;">
-      <header> </header>
+      <style>
+        .img-top-demo {
+          width: 100%;
+          height: 150px;
+          text-align: center;
+          padding-top: 50px;
+          background-image: url('https://ak8.picdn.net/shutterstock/videos/31579318/thumb/1.jpg');
+          color: white;
+        }
+
+        .texto-bottom {
+          padding-top: 25px;
+          text-align: center;
+          font-weight: bold;
+        }
+      </style>
       <body>
-        <div class="container"> </div>
+        <div class="container-fluid img-top-demo"> <h1> Editor en tiempo real</h1> </div>
+        <div class="container-fluid texto-bottom">
+          <p> La finalidad de esta herramienta es aprender HTML y CSS por la práctica, pudiendo visualizar los elementos en tiempo real </p>
+          <p> A la derecha podrás visualizar distintas opciones para utilizar este editor </p>
+        </div>
       </body>
     </div>
 
     <script type="text/javascript">
       var editor = grapesjs.init({
-        showOffsets: 1,
-        noticeOnUnload: 0,
-        container: '#gjs',
-        height: '100%',
-        fromElement: true,
-        storageManager: { autoload: 0 },
-        showDevices: false,
-        storageManager: { type: 'firestore' },
-        plugins: ['grapesjs-firestore'],
-        pluginsOpts: {
-          'grapesjs-firestore': {
-            docId: 'gjs',
-            apiKey: 'AIzaSyAsx0BigxXLRmLzYTuVmdF5eh2NFon2hC0',
-            authDomain: 'cursomm-a0549.firebaseapp.com',
-            projectId: 'cursomm-a0549'
-          }
-        },
-        styleManager: {
-          sectors: [
-            {
-              name: 'General',
-              open: false,
-              buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom']
-            },
-            {
-              name: 'Tamaño',
-              open: false,
-              buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding']
-            },
-            {
-              name: 'Fuente',
-              open: false,
-              buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-shadow']
-            },
-            {
-              name: 'Decoraciones',
-              open: false,
-              buildProps: ['border-radius-c', 'background-color', 'border-radius', 'border', 'box-shadow', 'background']
-            }
-          ]
-        },
         canvas: {
           styles: ['https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css'],
           scripts: [
@@ -83,12 +68,14 @@
           ]
         }
       });
-      editor.BlockManager.add('testBlock', {
-        label: 'Block',
-        attributes: { class: 'gjs-fonts gjs-f-b1' },
-        category: 'Básicos',
-        content: `<div class="row"> <div class="col-md-12"> <p style="padding-top:50px; padding-bottom:50px; text-align:center"> Doble clic para editar <p/> </div> </div>`
-      });
+    </script>
+    <div id="footerInfo" style="position: absolute; bottom: 0; color: black; z-index: 999999; background: white; font-family: Arial, Helvetica, sans-serif; font-size: 10px" onclick="removeFooter()">
+      Herramienta creada con fines educativos por Juan Pablo Paillet - Licencia BSD - <a href="mailto:info@pailletjp.com"> Contacto </a> <span style="cursor: pointer"> - Cerrar </span>
+    </div>
+    <script>
+      const removeFooter = () => {
+        document.getElementById('footerInfo').remove();
+      };
     </script>
   </body>
 </html>

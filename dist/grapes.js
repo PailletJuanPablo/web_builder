@@ -24284,6 +24284,8 @@ module.exports = function(module) {
 "use strict";
 
 
+var _loader = __webpack_require__(/*! ../../custom/loader */ "./src/custom/loader.js");
+
 module.exports = {
   // Default assets
   // eg. [
@@ -24304,7 +24306,7 @@ module.exports = {
   // Upload endpoint, set `false` to disable upload
   // upload: 'https://endpoint/upload/assets',
   // upload: false,
-  upload: 0,
+  upload: true,
 
   // The name used in POST to pass uploaded files
   uploadName: 'files',
@@ -24320,7 +24322,7 @@ module.exports = {
 
   // Allow uploading multiple files per request.
   // If disabled filename will not have '[]' appended
-  multiUpload: true,
+  multiUpload: false,
 
   // If true, tries to add automatically uploaded assets.
   // To make it work the server should respond with a JSON containing assets
@@ -24357,10 +24359,32 @@ module.exports = {
   //   var files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
   //   // ...send somewhere
   // }
-  uploadFile: '',
+  uploadFile: function uploadFile(e) {
+
+    var file = e.dataTransfer ? e.dataTransfer.files[0] : e.target.files[0];
+
+    console.log(file);
+    if (file) {
+      document.getElementById("custom_loader").style.display = "block";
+      document.getElementById("loader_text").style.display = "block";
+
+      console.log(e);
+      uploadToFirebase(file).then(function (url) {
+        editor.AssetManager.add(url);
+        document.getElementById("custom_loader").style.display = "none";
+        document.getElementById("loader_text").style.display = "none";
+      }).catch(function (error) {
+        document.getElementById("custom_loader").style.display = "none";
+        document.getElementById("loader_text").style.display = "none";
+        alert('Hubo un error subiendo la imagen');
+      });
+    }
+
+    // console.log(files)
+  },
 
   // In the absence of 'uploadFile' or 'upload' assets will be embedded as Base64
-  embedAsBase64: 1,
+  embedAsBase64: 0,
 
   // Handle the image url submit from the built-in 'Add image' form
   // @example
@@ -24386,7 +24410,34 @@ module.exports = {
   modalTitle: 'Seleccionar imagen',
 
   //Default placeholder for input
-  inputPlaceholder: 'http://path/to/the/image.jpg'
+  inputPlaceholder: 'Puedes escribir urls, como http://url/de/la/imagen.jpg'
+};
+
+var uploadToFirebase = function uploadToFirebase(file) {
+  return new Promise(function (resolve, reject) {
+    // Get a reference to the storage service, which is used to create references in your storage bucket
+
+    // Create a storage reference from our storage service
+    var ref = firebase.app().storage('gs://cursomm-a0549.appspot.com').ref();
+    //const ref = firebase.storage('gs://cursomm-a0549.appspot.com').ref();
+
+    var name = +new Date() + '-' + file.name;
+    var metadata = {
+      contentType: file.type
+    };
+
+    console.log(name);
+
+    var task = ref.child(name).put(file, metadata);
+    task.then(function (snapshot) {
+      return snapshot.ref.getDownloadURL();
+    }).then(function (url) {
+      resolve(url);
+      //   console.log(url);
+    }).catch(function (error) {
+      return reject(error);
+    });
+  });
 };
 
 /***/ }),
@@ -26834,7 +26885,7 @@ exports.default = function (editor) {
   var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
 
-  var img_src_default = 'https://dummyimage.com/450x250/999/222';
+  var img_src_default = 'https://www.agora-gallery.com/advice/wp-content/uploads/2015/10/image-placeholder-300x200.png';
 
   var contexts = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark'];
 
@@ -36346,7 +36397,7 @@ exports.default = function (editor, config) {
       var modal = editor.Modal;
       modal.open({
         title: 'Guardado correctamente con el id: ' + userId,
-        content: 'Utilizar este id desde cualquier dispositivo para cargar tu web'
+        content: 'Utilizar este id desde cualquier dispositivo para cargar tu web. También podrás verla online en el siguiente link: <a style="color: white" target="_blank" href="http://cursodesarrolloweb.net/sitios/' + userId + '" >  http://cursodesarrolloweb.net/sitios/' + userId + '</a>'
       });
     }
   });
@@ -36355,9 +36406,19 @@ exports.default = function (editor, config) {
     run: function run() {
       var id = prompt('Ingrese ID a cargar:');
       if (id != null) {
-        localStorage.setItem('user_web_id', id);
+        var template = db.collection('templates').doc(id);
 
-        window.location.reload();
+        template.get().then(function (doc) {
+          if (template.exists) {
+            localStorage.setItem('user_web_id', id);
+            window.location.reload();
+          } else {
+            alert('No existe una pagina registrada con ese id');
+          }
+        }).catch(function (error) {
+          alert('Error extraño del server, intenta más tarde y por favor notificarme. Gracias!');
+          console.log('Error:', error);
+        });
       }
     }
   });
@@ -36371,6 +36432,77 @@ exports.default = function (editor, config) {
       });
     }
   });
+
+  cmdm.add('add_custom_id', {
+    run: function run() {
+      var modal = editor.Modal;
+      modal.open({
+        title: 'Establecer ID personalizado',
+        content: 'Podes agregar un nuevo ID, la p\xE1gina se actualizar\xE1 con el mismo. <input id="newId"> <button style="color: #fff;background-color: #007bff;border-color: #007bff" id="setNewId"> Establecer </button>'
+      });
+    }
+  });
+
+  cmdm.add('open-site', {
+    run: function run() {
+      window.open('http://cursodesarrolloweb.net/sitios/' + userId);
+    }
+  });
+};
+
+/***/ }),
+
+/***/ "./src/custom/fireUpload.js":
+/*!**********************************!*\
+  !*** ./src/custom/fireUpload.js ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.default = function (editor, config) {
+  var am = editor.AssetManager;
+
+  editor.on('asset:upload:response', function (data) {
+    console.log('from event', data);
+    // do something
+  });
+
+  am.uploadFile = function (e) {
+    var file = e.dataTransfer ? e.dataTransfer.files[0] : e.target.files[0];
+    console.log(file);
+    uploadToFirebase(file);
+    // console.log(files)
+  };
+
+  am.uploadToFirebase = function (file) {
+    // Get a reference to the storage service, which is used to create references in your storage bucket
+
+    // Create a storage reference from our storage service
+    var ref = firebase.app().storage('gs://cursomm-a0549.appspot.com').ref();
+    //const ref = firebase.storage('gs://cursomm-a0549.appspot.com').ref();
+
+    var name = +new Date() + '-' + file.name;
+    var metadata = {
+      contentType: file.type
+    };
+
+    console.log(name);
+
+    var task = ref.child(name).put(file, metadata);
+    task.then(function (snapshot) {
+      return snapshot.ref.getDownloadURL();
+    }).then(function (url) {
+      console.log(url);
+      //  am.add(url);
+    }).catch(console.error);
+  };
 };
 
 /***/ }),
@@ -36401,6 +36533,10 @@ var _blocks = __webpack_require__(/*! ./blocks */ "./src/custom/blocks.js");
 
 var _blocks2 = _interopRequireDefault(_blocks);
 
+var _fireUpload = __webpack_require__(/*! ./fireUpload */ "./src/custom/fireUpload.js");
+
+var _fireUpload2 = _interopRequireDefault(_fireUpload);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var _require = __webpack_require__(/*! ../bootstrap */ "./src/bootstrap/index.js"),
@@ -36410,10 +36546,12 @@ exports.default = function (editor) {
   var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
   var storageManager = editor.StorageManager;
+  var assetManager = editor.AssetManager;
 
   (0, _commands2.default)(editor, opts);
   bSettings(editor, opts);
   (0, _blocks2.default)(editor, opts);
+  (0, _fireUpload2.default)(editor, opts);
 
   storageManager.setAutosave(true);
 
@@ -36422,7 +36560,223 @@ exports.default = function (editor) {
       editor.setComponents(res['html']);
     });
   });
+
+  editor.on('run:add_custom_id:before', function () {
+    setTimeout(function () {
+      document.getElementById('setNewId').addEventListener('click', function () {
+        var newId = document.getElementById('newId').value;
+        console.log(newId);
+        localStorage.setItem('user_web_id', newId);
+        window.location.reload();
+      });
+    }, 1000);
+  });
 };
+
+/***/ }),
+
+/***/ "./src/custom/loader.js":
+/*!******************************!*\
+  !*** ./src/custom/loader.js ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var __assign = undefined && undefined.__assign || function () {
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) {
+                if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+            }
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var defaults = {
+    lines: 12,
+    length: 7,
+    width: 5,
+    radius: 10,
+    scale: 1.0,
+    corners: 1,
+    color: '#000',
+    fadeColor: 'transparent',
+    animation: 'spinner-line-fade-default',
+    rotate: 0,
+    direction: 1,
+    speed: 1,
+    zIndex: 2e9,
+    className: 'spinner',
+    top: '50%',
+    left: '50%',
+    shadow: '0 0 1px transparent',
+    position: 'absolute'
+};
+var Spinner = /** @class */function () {
+    function Spinner(opts) {
+        if (opts === void 0) {
+            opts = {};
+        }
+        this.opts = __assign({}, defaults, opts);
+    }
+    /**
+     * Adds the spinner to the given target element. If this instance is already
+     * spinning, it is automatically removed from its previous target by calling
+     * stop() internally.
+     */
+    Spinner.prototype.spin = function (target) {
+        this.stop();
+        this.el = document.createElement('div');
+        this.el.className = this.opts.className;
+        this.el.setAttribute('role', 'progressbar');
+        css(this.el, {
+            position: this.opts.position,
+            width: 0,
+            zIndex: this.opts.zIndex,
+            left: this.opts.left,
+            top: this.opts.top,
+            transform: "scale(" + this.opts.scale + ")"
+        });
+        if (target) {
+            target.insertBefore(this.el, target.firstChild || null);
+        }
+        drawLines(this.el, this.opts);
+        return this;
+    };
+    /**
+     * Stops and removes the Spinner.
+     * Stopped spinners may be reused by calling spin() again.
+     */
+    Spinner.prototype.stop = function () {
+        if (this.el) {
+            if (typeof requestAnimationFrame !== 'undefined') {
+                cancelAnimationFrame(this.animateId);
+            } else {
+                clearTimeout(this.animateId);
+            }
+            if (this.el.parentNode) {
+                this.el.parentNode.removeChild(this.el);
+            }
+            this.el = undefined;
+        }
+        return this;
+    };
+    return Spinner;
+}();
+exports.Spinner = Spinner;
+/**
+* Sets multiple style properties at once.
+*/
+
+function css(el, props) {
+    for (var prop in props) {
+        el.style[prop] = props[prop];
+    }
+    return el;
+}
+/**
+* Returns the line color from the given string or array.
+*/
+function getColor(color, idx) {
+    return typeof color == 'string' ? color : color[idx % color.length];
+}
+/**
+* Internal method that draws the individual lines.
+*/
+function drawLines(el, opts) {
+    var borderRadius = Math.round(opts.corners * opts.width * 500) / 1000 + 'px';
+    var shadow = 'none';
+    if (opts.shadow === true) {
+        shadow = '0 2px 4px #000'; // default shadow
+    } else if (typeof opts.shadow === 'string') {
+        shadow = opts.shadow;
+    }
+    var shadows = parseBoxShadow(shadow);
+    for (var i = 0; i < opts.lines; i++) {
+        var degrees = ~~(360 / opts.lines * i + opts.rotate);
+        var backgroundLine = css(document.createElement('div'), {
+            position: 'absolute',
+            top: -opts.width / 2 + "px",
+            width: opts.length + opts.width + 'px',
+            height: opts.width + 'px',
+            background: getColor(opts.fadeColor, i),
+            borderRadius: borderRadius,
+            transformOrigin: 'left',
+            transform: "rotate(" + degrees + "deg) translateX(" + opts.radius + "px)"
+        });
+        var delay = i * opts.direction / opts.lines / opts.speed;
+        delay -= 1 / opts.speed; // so initial animation state will include trail
+        var line = css(document.createElement('div'), {
+            width: '100%',
+            height: '100%',
+            background: getColor(opts.color, i),
+            borderRadius: borderRadius,
+            boxShadow: normalizeShadow(shadows, degrees),
+            animation: 1 / opts.speed + "s linear " + delay + "s infinite " + opts.animation
+        });
+        backgroundLine.appendChild(line);
+        el.appendChild(backgroundLine);
+    }
+}
+function parseBoxShadow(boxShadow) {
+    var regex = /^\s*([a-zA-Z]+\s+)?(-?\d+(\.\d+)?)([a-zA-Z]*)\s+(-?\d+(\.\d+)?)([a-zA-Z]*)(.*)$/;
+    var shadows = [];
+    for (var _i = 0, _a = boxShadow.split(','); _i < _a.length; _i++) {
+        var shadow = _a[_i];
+        var matches = shadow.match(regex);
+        if (matches === null) {
+            continue; // invalid syntax
+        }
+        var x = +matches[2];
+        var y = +matches[5];
+        var xUnits = matches[4];
+        var yUnits = matches[7];
+        if (x === 0 && !xUnits) {
+            xUnits = yUnits;
+        }
+        if (y === 0 && !yUnits) {
+            yUnits = xUnits;
+        }
+        if (xUnits !== yUnits) {
+            continue; // units must match to use as coordinates
+        }
+        shadows.push({
+            prefix: matches[1] || '',
+            x: x,
+            y: y,
+            xUnits: xUnits,
+            yUnits: yUnits,
+            end: matches[8]
+        });
+    }
+    return shadows;
+}
+/**
+* Modify box-shadow x/y offsets to counteract rotation
+*/
+function normalizeShadow(shadows, degrees) {
+    var normalized = [];
+    for (var _i = 0, shadows_1 = shadows; _i < shadows_1.length; _i++) {
+        var shadow = shadows_1[_i];
+        var xy = convertOffset(shadow.x, shadow.y, degrees);
+        normalized.push(shadow.prefix + xy[0] + shadow.xUnits + ' ' + xy[1] + shadow.yUnits + shadow.end);
+    }
+    return normalized.join(', ');
+}
+function convertOffset(x, y, degrees) {
+    var radians = degrees * Math.PI / 180;
+    var sin = Math.sin(radians);
+    var cos = Math.cos(radians);
+    return [Math.round((x * cos + y * sin) * 1000) / 1000, Math.round((-x * sin + y * cos) * 1000) / 1000];
+}
 
 /***/ }),
 
@@ -44410,6 +44764,7 @@ module.exports = function () {
 
       var els = config.container;
       if (!els) throw new Error("'container' is required");
+
       config = _extends({}, defaultConfig, config);
       config.el = (0, _underscore.isElement)(els) ? els : document.querySelector(els);
       var editor = new _editor2.default(config).init();
@@ -45906,6 +46261,11 @@ module.exports = {
       className: 'info_data',
       label: 'Tu id es ' + userId,
       togglable: false
+    }, {
+      id: 'add_custom_id',
+      className: 'fa fa-edit ',
+      command: 'add_custom_id',
+      attributes: { title: 'Añadir nuevo ID!' }
     }]
   }, {
     id: 'options',
@@ -45945,6 +46305,11 @@ module.exports = {
       className: 'fa fa-trash icon-blank',
       command: 'clean-all',
       attributes: { title: 'Eliminar todo' }
+    }, {
+      id: 'open-site',
+      className: 'fa fa-play icon-blank',
+      command: 'open-site',
+      attributes: { title: 'Ver Online!' }
     }]
   }, {
     id: 'views',
@@ -45955,19 +46320,6 @@ module.exports = {
       active: true,
       togglable: 0,
       attributes: { title: 'Bloques de Código' }
-    }, {
-      id: otm,
-      className: 'fa fa-cog',
-      command: otm,
-      togglable: 0,
-      attributes: { title: 'Configuración' }
-    }, {
-      id: ola,
-      className: 'fa fa-align-justify',
-      command: ola,
-      active: false,
-      togglable: 0,
-      attributes: { title: 'Estructura de Etiquetas' }
     }, {
       id: osm,
       className: 'fa fa-paint-brush',
@@ -45980,8 +46332,24 @@ module.exports = {
       attributes: { title: 'Modificar Código' },
       command: 'open-code'
     }, 'attributes', {
-      title: 'Editar Code'
-    })]
+      title: 'Editar Código'
+    }), {
+      id: ola,
+      className: 'fa fa-align-justify',
+      command: ola,
+      active: false,
+      togglable: 0,
+      attributes: { title: 'Estructura de Etiquetas' }
+      /*
+      {
+        id: otm,
+        className: 'fa fa-cog',
+        command: otm,
+        togglable: 0,
+        attributes: { title: 'Configuración' }
+      },*/
+
+    }]
   }],
 
   // Editor model
