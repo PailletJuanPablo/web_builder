@@ -43,12 +43,9 @@ export default (editor, config) => {
         template
           .get()
           .then(function(doc) {
-            if (template.exists) {
               localStorage.setItem('user_web_id', id);
               window.location.reload();
-            } else {
-              alert('No existe una pagina registrada con ese id');
-            }
+            
           })
           .catch(function(error) {
             alert('Error extraño del server, intenta más tarde y por favor notificarme. Gracias!')
